@@ -92,6 +92,7 @@ export default class Module2 {
             case 'preparation_change':
                 emptyData = {
                     reason: null,
+                    auditName: null,
                     orderDate: null,
                     orderNumber: null,
                     newEndDate: null,
@@ -102,6 +103,8 @@ export default class Module2 {
                 break;
             case 'execution_change':
                 emptyData = {
+                    reason: null,
+                    auditName: null,
                     orderNumber: null,
                     newEndDate: null,
                     newActSendDate: null,
@@ -146,6 +149,8 @@ export default class Module2 {
                 break;
 
             case 'preparation_change':
+                formData.reason = this.container.querySelector('#reason')?.value || null;
+                formData.auditName = this.container.querySelector('#auditName')?.value || null;
                 formData.orderNumber = this.container.querySelector('#orderNumber')?.value || null;
                 formData.newEndDate = this.container.querySelector('#newEndDate')?.value || null;
                 formData.changeTeam = this.container.querySelector('#changeTeam')?.checked || false;
@@ -154,6 +159,8 @@ export default class Module2 {
                 break;
 
             case 'execution_change':
+                formData.reason = this.container.querySelector('#reason')?.value || null;
+                formData.auditName = this.container.querySelector('#auditName')?.value || null;
                 formData.orderNumber = this.container.querySelector('#orderNumber')?.value || null;
                 formData.newEndDate = this.container.querySelector('#newEndDate')?.value || null;
                 formData.newActSendDate = this.container.querySelector('#newActSendDate')?.value || null;
@@ -329,6 +336,16 @@ export default class Module2 {
     renderPreparationChangeForm() {
         return `
             <div class="form-group">
+                <label for="reason">Причина изменения распоряжения <span class="required">*</span></label>
+                <input type="text" id="reason" placeholder="Введите причину изменения">
+            </div>
+
+            <div class="form-group">
+                <label for="auditName">Наименование проверки <span class="required">*</span></label>
+                <input type="text" id="auditName" placeholder="Введите наименование проверки">
+            </div>
+
+            <div class="form-group">
                 <label for="orderNumber">Номер распоряжения <span class="required">*</span></label>
                 <input type="text" id="orderNumber" placeholder="Введите номер распоряжения">
             </div>
@@ -362,6 +379,16 @@ export default class Module2 {
 
     renderExecutionChangeForm() {
         return `
+            <div class="form-group">
+                <label for="reason">Причина изменения распоряжения <span class="required">*</span></label>
+                <input type="text" id="reason" placeholder="Введите причину изменения">
+            </div>
+
+            <div class="form-group">
+                <label for="auditName">Наименование проверки <span class="required">*</span></label>
+                <input type="text" id="auditName" placeholder="Введите наименование проверки">
+            </div>
+
             <div class="form-group">
                 <label for="orderNumber">Номер распоряжения <span class="required">*</span></label>
                 <input type="text" id="orderNumber" placeholder="Введите номер распоряжения">

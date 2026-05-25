@@ -116,10 +116,9 @@ export default class Module3 {
 
         if (orderType === 'new') {
             scenario = 'new';
-        } else if (orderType === 'change' && this.changeTeamFlag) {
+        } else if (orderType === 'change') {
+            // Для изменения распоряжения модуль команда должен отображаться всегда
             scenario = 'change';
-        } else if (orderType === 'change' && !this.changeTeamFlag) {
-            scenario = 'no_change_needed';
         }
 
         if (this.currentScenario !== scenario) {
@@ -148,11 +147,10 @@ export default class Module3 {
                 changes: {
                     include: [],
                     exclude: [],
-                    signer: null
+                    signer: null,
+                    control: null
                 }
             };
-        } else if (this.currentScenario === 'no_change_needed') {
-            emptyData = {};
         }
 
         this.configManager.replaceModuleConfig(this.MODULE_KEY, emptyData);
@@ -161,16 +159,6 @@ export default class Module3 {
 
     renderForm() {
         if (!this.container) return;
-
-        if (this.currentScenario === 'no_change_needed') {
-            this.container.innerHTML = `
-                <h2>3. Команда проверки</h2>
-                <div class="info-message" style="background: #fff3cd; border: 1px solid #ffc107;">
-                    ⚠️ Изменение состава команды проверки не требуется
-                </div>
-            `;
-            return;
-        }
 
         if (this.currentScenario === 'change') {
             this.renderChangeForm();
@@ -279,6 +267,16 @@ export default class Module3 {
 
             <div class="info-banner">
                 📍 ${this.currentTB === 'ЦА' ? 'Показываются все сотрудники' : `Показываются сотрудники только выбранного ТБ: ${this.currentTB}`}
+            </div>
+
+            <div class="employee-section">
+                <h3>Контроль исполнения распоряжения <span class="required">*</span></h3>
+                <div class="employee-row">
+                    <input type="text" class="employee-search-input" id="changeControl"
+                           placeholder="Поиск по ФИО, должности, отделу или табельному номеру..." autocomplete="off" required>
+                    <div class="suggestions-box"></div>
+                </div>
+                <div id="changeControlTag" class="selected-tag"></div>
             </div>
 
             <div class="employee-section">
@@ -446,6 +444,9 @@ export default class Module3 {
             case 'changeSigner':
                 containerId = 'changeSignerTag';
                 break;
+            case 'changeControl':
+                containerId = 'changeControlTag';
+                break;
             default:
                 return;
         }
@@ -454,7 +455,7 @@ export default class Module3 {
         if (!tagContainer) return;
 
         // Для одиночных ролей (leader, deputy, control, signer) - заменяем тег
-        const singleRoles = ['leader', 'deputy', 'control', 'signer', 'changeSigner'];
+        const singleRoles = ['leader', 'deputy', 'control', 'signer', 'changeSigner', 'changeControl'];
         if (singleRoles.includes(role)) {
             tagContainer.innerHTML = '';
         }
@@ -506,7 +507,7 @@ export default class Module3 {
                 }
             });
         } else {
-            const inputId = role === 'changeSigner' ? 'changeSigner' : role;
+            const inputId = role === 'changeSigner' ? 'changeSigner' : role === 'changeControl' ? 'changeControl' : role;
             const input = this.container.querySelector(`#${inputId}`);
             if (input && input.dataset.selectedEmployee) {
                 const selected = JSON.parse(input.dataset.selectedEmployee);
@@ -534,7 +535,8 @@ export default class Module3 {
             'team': 'teamTags',
             'include': 'includeTags',
             'exclude': 'excludeTags',
-            'changeSigner': 'changeSignerTag'
+            'changeSigner': 'changeSignerTag',
+            'changeControl': 'changeControlTag'
         };
         return map[role] || '';
     }
@@ -762,6 +764,16 @@ export default class Module3 {
     saveChangeConfig() {
         if (this.currentScenario !== 'change') return;
 
+        // Контроль исполнения
+        const controlTag = this.container.querySelector('#changeControlTag');
+        let control = null;
+        if (controlTag) {
+            const removeBtn = controlTag.querySelector('.tag-remove');
+            if (removeBtn && removeBtn.dataset.employee) {
+                control = JSON.parse(removeBtn.dataset.employee);
+            }
+        }
+
         // Подписант
         const signerTag = this.container.querySelector('#changeSignerTag');
         let signer = null;
@@ -802,7 +814,8 @@ export default class Module3 {
             changes: {
                 include: includeMembers,
                 exclude: excludeMembers,
-                signer: signer
+                signer: signer,
+                control: control
             }
         };
 
@@ -855,6 +868,11 @@ export default class Module3 {
                 });
             }
         } else if (this.currentScenario === 'change') {
+            // Загружаем контроль исполнения
+            if (savedData.changes && savedData.changes.control) {
+                this.createEmployeeTag('changeControl', savedData.changes.control);
+            }
+
             // Загружаем подписанта
             if (savedData.changes && savedData.changes.signer) {
                 this.createEmployeeTag('changeSigner', savedData.changes.signer);
