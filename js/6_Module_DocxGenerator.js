@@ -855,10 +855,12 @@ export default class DocxGenerator {
             dictOrder.showLinkApp2 = false;
         }
 
-        if (this.flagIsTB && listDictProcesses) {
-            dictOrder.processes = listDictProcesses;
+        if (this.flagIsTB) {
             dictOrder.TB_full_name = this.dictNameTB[this.nameTB][0].toUpperCase();
             dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
+            dictOrder.showTB = true;
+        } else {
+            dictOrder.showTB = false;
         }
 
         if (this.listAutomatedSystemsAudit && listDictAutomatedSystems && listDictAutomatedSystems.length > 0) {
