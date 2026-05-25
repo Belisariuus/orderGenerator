@@ -39,10 +39,10 @@
 <script type="module">
     // Импортируем модули
     import Module1 from './js/1_Module_SettingsOrder.js';
-    // import Module2 from './js/2_Module_Questionnaire.js';
-    // import Module3 from './js/3_Module_TeamAudit.js';
-    // import Module4 from './js/4_Module_ProcessesModule.js';
-    // import Module5 from './js/5_Module_AutomatedSystems.js';
+    import Module2 from './js/2_Module_Questionnaire.js';
+    import Module3 from './js/3_Module_TeamAudit.js';
+    import Module4 from './js/4_Module_ProcessesModule.js';
+    import Module5 from './js/5_Module_AutomatedSystems.js';
     import DocxGenerator from './js/6_Module_DocxGenerator.js';
     const configManager = window.appConfigManager;
 
@@ -50,23 +50,31 @@
     // Массив модулей для загрузки
     const modules = [
         { name: 'Module1', class: Module1, title: 'Модуль 1' },
-    //    { name: 'Module2', class: Module2, title: 'Модуль 2' },
-    //    { name: 'Module3', class: Module3, title: 'Модуль 3' },
-    //    { name: 'Module4', class: Module4, title: 'Модуль 4' },
-    //    { name: 'Module5', class: Module5, title: 'Модуль 5' },
+        { name: 'Module2', class: Module2, title: 'Модуль 2' },
+        { name: 'Module3', class: Module3, title: 'Модуль 3' },
+        { name: 'Module4', class: Module4, title: 'Модуль 4' },
+        { name: 'Module5', class: Module5, title: 'Модуль 5' },
         { name: 'DocxGenerator', class: DocxGenerator, title: 'DocxGenerator' }
     ];
 
     // Рендерим все модули
     const container = document.getElementById('modules-container');
 
+    // Создаем и сохраняем экземпляры модулей
+    const moduleInstances = [];
+    
     modules.forEach(moduleInfo => {
         if (moduleInfo.name !== 'DocxGenerator') {
             const moduleInstance = new moduleInfo.class(configManager);
+            moduleInstances.push(moduleInstance);
             const moduleElement = moduleInstance.render();
             container.appendChild(moduleElement);
-        };
+        }
     });
+
+    // Сохраняем экземпляр генератора для доступа из кнопки
+    window.docxGeneratorInstance = null;
+    window.moduleInstances = moduleInstances;
 
     // Подписываемся на изменения конфигурации
     configManager.subscribe((moduleName, data, fullConfig) => {
@@ -87,9 +95,11 @@
     });
 
     // Генерация документа
-    document.getElementById('docxGenerate').addEventListener('click', () => {
-        const docxGenerator = new DocxGenerator(configManager);
-        docxGenerator.prepareDocument();
+    document.getElementById('docxGenerate').addEventListener('click', async () => {
+        if (!window.docxGeneratorInstance) {
+            window.docxGeneratorInstance = new DocxGenerator(configManager);
+        }
+        await window.docxGeneratorInstance.prepareDocument();
     });
 
     // Кнопка сохранения
