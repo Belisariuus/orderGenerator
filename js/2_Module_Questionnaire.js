@@ -57,7 +57,11 @@ export default class Module2 {
             this.clearModuleData();
 
             this.renderForm();
-            this.loadSavedData();
+            
+            // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
         }
     }
 
