@@ -970,6 +970,7 @@ export default class DocxGenerator {
             listPairsProcessesClientPath.sort((a, b) => b[1].localeCompare(a[1]));
 
             let prevCP = 0;
+            let prevProcCode = 0;
             for (const row of listPairsProcessesClientPath) {
                 const processCode = 'П' + row[0];
                 const rowProcess = this.getProcessByCode(processCode);
@@ -988,7 +989,19 @@ export default class DocxGenerator {
                     dictProcess.kp_code = '-';
                     dictProcess.kp_name = '-';
                     dictProcess.kp_owner = '-';
+                    // Объединение ячеек для процессов без КП
+                    if (prevProcCode === row[0]) {
+                        dictProcess.kp_i_empty = true;
+                        dictProcess.kp_code_empty = true;
+                        dictProcess.kp_name_empty = true;
+                        dictProcess.kp_owner_empty = true;
+                        dictProcess.p_i_empty = true;
+                        dictProcess.p_code_empty = true;
+                        dictProcess.p_name_empty = true;
+                        dictProcess.p_owner_empty = true;
+                    }
                     listDictProcessesAdd.push(dictProcess);
+                    prevProcCode = row[0];
                 } else {
                     const codeCP = row[1];
                     if (prevCP !== codeCP) {
@@ -1002,13 +1015,34 @@ export default class DocxGenerator {
                         newDictProcess.kp_code = kpCode;
                         newDictProcess.kp_owner = rowClientPath.ownerDepartment;
                         uniqueClientPathAdd.add(newDictProcess.kp_code);
+                        // Объединение ячеек для процессов
+                        if (prevProcCode === row[0]) {
+                            newDictProcess.p_i_empty = true;
+                            newDictProcess.p_code_empty = true;
+                            newDictProcess.p_name_empty = true;
+                            newDictProcess.p_owner_empty = true;
+                        }
                         listDictProcessesAdd.push(newDictProcess);
+                        prevProcCode = row[0];
                     } else {
                         dictProcess.kp_i = '';
                         dictProcess.kp_name = '';
                         dictProcess.kp_code = '';
                         dictProcess.kp_owner = '';
+                        // Объединение ячеек для КП
+                        dictProcess.kp_i_empty = true;
+                        dictProcess.kp_code_empty = true;
+                        dictProcess.kp_name_empty = true;
+                        dictProcess.kp_owner_empty = true;
+                        // Объединение ячеек для процессов
+                        if (prevProcCode === row[0]) {
+                            dictProcess.p_i_empty = true;
+                            dictProcess.p_code_empty = true;
+                            dictProcess.p_name_empty = true;
+                            dictProcess.p_owner_empty = true;
+                        }
                         listDictProcessesAdd.push(dictProcess);
+                        prevProcCode = row[0];
                     }
                     prevCP = codeCP;
                 }
@@ -1050,6 +1084,7 @@ export default class DocxGenerator {
             listProcessClientPathPairs.sort((a, b) => b[1].localeCompare(a[1]));
 
             let prevCP = 0;
+            let prevProcCode = 0;
             for (const row of listProcessClientPathPairs) {
                 const processCode = 'П' + row[0];
                 const rowProcesses = this.getProcessByCode(processCode);
@@ -1068,7 +1103,19 @@ export default class DocxGenerator {
                     dictProcesses.kp_code = '-';
                     dictProcesses.kp_name = '-';
                     dictProcesses.kp_owner = '-';
+                    // Объединение ячеек для процессов без КП
+                    if (prevProcCode === row[0]) {
+                        dictProcesses.kp_i_empty = true;
+                        dictProcesses.kp_code_empty = true;
+                        dictProcesses.kp_name_empty = true;
+                        dictProcesses.kp_owner_empty = true;
+                        dictProcesses.p_i_empty = true;
+                        dictProcesses.p_code_empty = true;
+                        dictProcesses.p_name_empty = true;
+                        dictProcesses.p_owner_empty = true;
+                    }
                     listDictProcessesRem.push(dictProcesses);
+                    prevProcCode = row[0];
                 } else {
                     const codeCP = row[1];
                     if (prevCP !== codeCP) {
@@ -1082,13 +1129,34 @@ export default class DocxGenerator {
                         newDictProcesses.kp_code = kpCode;
                         newDictProcesses.kp_owner = rowClientPath.ownerDepartment;
                         uniqueClientPathRem.add(newDictProcesses.kp_code);
+                        // Объединение ячеек для процессов
+                        if (prevProcCode === row[0]) {
+                            newDictProcesses.p_i_empty = true;
+                            newDictProcesses.p_code_empty = true;
+                            newDictProcesses.p_name_empty = true;
+                            newDictProcesses.p_owner_empty = true;
+                        }
                         listDictProcessesRem.push(newDictProcesses);
+                        prevProcCode = row[0];
                     } else {
                         dictProcesses.kp_i = '';
                         dictProcesses.kp_name = '';
                         dictProcesses.kp_code = '';
                         dictProcesses.kp_owner = '';
+                        // Объединение ячеек для КП
+                        dictProcesses.kp_i_empty = true;
+                        dictProcesses.kp_code_empty = true;
+                        dictProcesses.kp_name_empty = true;
+                        dictProcesses.kp_owner_empty = true;
+                        // Объединение ячеек для процессов
+                        if (prevProcCode === row[0]) {
+                            dictProcesses.p_i_empty = true;
+                            dictProcesses.p_code_empty = true;
+                            dictProcesses.p_name_empty = true;
+                            dictProcesses.p_owner_empty = true;
+                        }
                         listDictProcessesRem.push(dictProcesses);
+                        prevProcCode = row[0];
                     }
                     prevCP = codeCP;
                 }
@@ -1127,6 +1195,13 @@ export default class DocxGenerator {
                         dictAutomatedSystems.roles = '';
                         dictAutomatedSystems.kp = '';
                         dictAutomatedSystems.proc = '';
+                        // Флаги для объединения ячеек в АС
+                        dictAutomatedSystems.i_empty = true;
+                        dictAutomatedSystems.name_empty = true;
+                        dictAutomatedSystems.ke_empty = true;
+                        dictAutomatedSystems.roles_empty = true;
+                        dictAutomatedSystems.kp_empty = true;
+                        dictAutomatedSystems.proc_empty = true;
                     } else {
                         dictAutomatedSystems.i = String(i);
                         // Получаем данные о системе из systemData (вместо Excel)
