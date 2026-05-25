@@ -829,27 +829,39 @@ export default class DocxGenerator {
             dir: empExecutionControl,
             podpis_title: signatoryPost,
             podpis_fio: signatoryFIO,
-            employees: listDictEmployees,
             pril_procs: 2,
             pril_aski: 3,
             ca_tb: ca_tb
         };
 
-        if (this.listProcessesAudit) {
-            dictOrder.kps_and_ps_count = countProcessClientPath;
-            dictOrder.processes = listDictProcesses;
+        // Передаем данные приложений только если они есть, иначе ставим флаги false
+        if (listDictEmployees && listDictEmployees.length > 0) {
+            dictOrder.employees = listDictEmployees;
+            dictOrder.showApp1 = true;
         } else {
-            dictOrder.pril_aski = 2;
+            dictOrder.showApp1 = false;
         }
 
-        if (this.flagIsTB) {
+        if (this.listProcessesAudit && listDictProcesses && listDictProcesses.length > 0) {
+            dictOrder.kps_and_ps_count = countProcessClientPath;
+            dictOrder.processes = listDictProcesses;
+            dictOrder.showApp2 = true;
+        } else {
+            dictOrder.pril_aski = 2; // Сдвигаем номер приложения
+            dictOrder.showApp2 = false;
+        }
+
+        if (this.flagIsTB && listDictProcesses) {
             dictOrder.processes = listDictProcesses;
             dictOrder.TB_full_name = this.dictNameTB[this.nameTB][0].toUpperCase();
             dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
         }
 
-        if (this.listAutomatedSystemsAudit) {
+        if (this.listAutomatedSystemsAudit && listDictAutomatedSystems && listDictAutomatedSystems.length > 0) {
             dictOrder.aski = listDictAutomatedSystems;
+            dictOrder.showApp3 = true;
+        } else {
+            dictOrder.showApp3 = false;
         }
 
         // Загрузка и рендеринг шаблона
@@ -1225,35 +1237,48 @@ export default class DocxGenerator {
             dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
         }
 
+        // Передаем данные приложений только если они есть, иначе ставим флаги false
         if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
             dictOrder.employees = listDictEmployees;
             dictOrder.ca_tb = ca_tb;
+            dictOrder.showApp1 = true;
         } else {
             dictOrder.pril_add = 1;
+            dictOrder.showApp1 = false;
         }
 
-        if (this.newListProcessesAudit) {
+        if (this.newListProcessesAudit && listDictProcessesAdd && listDictProcessesAdd.length > 0) {
             dictOrder.kps_and_ps_count_add = countProcessClientPathAdd;
             dictOrder.processesAdded = listDictProcessesAdd;
+            dictOrder.showApp2 = true;
         } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
             dictOrder.pril_rem = 2;
+            dictOrder.showApp2 = false;
         } else {
             dictOrder.pril_rem = 1;
+            dictOrder.showApp2 = false;
         }
 
-        if (this.deleteListProcessesAudit) {
+        if (this.deleteListProcessesAudit && listDictProcessesRem && listDictProcessesRem.length > 0) {
             dictOrder.kps_and_ps_count_rem = countRemoveProcessesClientPath;
             dictOrder.processesRemoved = listDictProcessesRem;
+            dictOrder.showApp3 = true;
         } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
             dictOrder.pril_aski = 3;
+            dictOrder.showApp3 = false;
         } else if (this.newListProcessesAudit) {
             dictOrder.pril_aski = 2;
+            dictOrder.showApp3 = false;
         } else {
             dictOrder.pril_aski = 1;
+            dictOrder.showApp3 = false;
         }
 
-        if (this.listAutomatedSystemsAudit) {
+        if (this.listAutomatedSystemsAudit && listDictAutomatedSystems && listDictAutomatedSystems.length > 0) {
             dictOrder.aski = listDictAutomatedSystems;
+            dictOrder.showApp4 = true;
+        } else {
+            dictOrder.showApp4 = false;
         }
 
         // Загрузка и рендеринг шаблона
