@@ -698,6 +698,13 @@ export default class DocxGenerator {
                         dictAutomatedSystems.roles = '';
                         dictAutomatedSystems.kp = '';
                         dictAutomatedSystems.proc = '';
+                        dictAutomatedSystems.emp_name = '';
+                        dictAutomatedSystems.title = '';
+                        dictAutomatedSystems.tn = '';
+                        // Флаги для объединения ячеек сотрудника
+                        dictAutomatedSystems.emp_name_empty = true;
+                        dictAutomatedSystems.title_empty = true;
+                        dictAutomatedSystems.tn_empty = true;
                     } else {
                         dictAutomatedSystems.i = String(i);
                         // Получаем данные о системе из systemData (вместо Excel)
