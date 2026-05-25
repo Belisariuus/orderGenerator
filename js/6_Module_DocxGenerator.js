@@ -1357,6 +1357,9 @@ export default class DocxGenerator {
         if (this.flagIsTB) {
             dictOrder.TB_full_name = this.dictNameTB[this.nameTB][0].toUpperCase();
             dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
+            dictOrder.showTB = true;
+        } else {
+            dictOrder.showTB = false;
         }
 
         // Передаем данные приложений только если они есть, иначе ставим флаги false
