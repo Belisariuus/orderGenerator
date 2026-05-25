@@ -138,12 +138,14 @@
         if (configManager.loadFromSessionStorage()) {
             console.log('Конфигурация восстановлена из sessionStorage');
             
-            // Перерисовываем модули с восстановленными данными
-            moduleInstances.forEach(module => {
-                if (typeof module.loadSavedData === 'function') {
-                    module.loadSavedData();
-                }
-            });
+            // Небольшая задержка чтобы убедиться, что все модули отрендерились
+            setTimeout(() => {
+                moduleInstances.forEach(module => {
+                    if (typeof module.loadSavedData === 'function') {
+                        module.loadSavedData();
+                    }
+                });
+            }, 100);
         }
     });
 

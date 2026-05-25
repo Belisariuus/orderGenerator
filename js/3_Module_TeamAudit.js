@@ -825,6 +825,11 @@ export default class Module3 {
         const savedData = this.configManager.getConfig()[this.MODULE_KEY] || {};
         console.log('Загрузка сохраненных данных модуля 3:', savedData);
 
+        if (!this.container || !this.currentScenario) {
+            console.log('Контейнер или сценарий не инициализированы для модуля 3');
+            return;
+        }
+
         if (Object.keys(savedData).length === 0) {
             console.log('Нет сохраненных данных для модуля 3');
             return;
@@ -832,7 +837,7 @@ export default class Module3 {
 
         if (this.currentScenario === 'new') {
             // Загружаем кураторов
-            if (savedData.curators && savedData.curators.length > 0) {
+            if (savedData.curators && Array.isArray(savedData.curators) && savedData.curators.length > 0) {
                 savedData.curators.forEach(employee => {
                     this.createEmployeeTag('curator', employee);
                 });
@@ -859,7 +864,7 @@ export default class Module3 {
             }
 
             // Загружаем команду
-            if (savedData.teamMembers && savedData.teamMembers.length > 0) {
+            if (savedData.teamMembers && Array.isArray(savedData.teamMembers) && savedData.teamMembers.length > 0) {
                 savedData.teamMembers.forEach(employee => {
                     this.createEmployeeTag('team', employee);
                 });
@@ -876,19 +881,21 @@ export default class Module3 {
             }
 
             // Загружаем включаемых
-            if (savedData.changes && savedData.changes.include && savedData.changes.include.length > 0) {
+            if (savedData.changes && savedData.changes.include && Array.isArray(savedData.changes.include) && savedData.changes.include.length > 0) {
                 savedData.changes.include.forEach(employee => {
                     this.createEmployeeTag('include', employee);
                 });
             }
 
             // Загружаем исключаемых
-            if (savedData.changes && savedData.changes.exclude && savedData.changes.exclude.length > 0) {
+            if (savedData.changes && savedData.changes.exclude && Array.isArray(savedData.changes.exclude) && savedData.changes.exclude.length > 0) {
                 savedData.changes.exclude.forEach(employee => {
                     this.createEmployeeTag('exclude', employee);
                 });
             }
         }
+        
+        console.log('✓ Модуль 3 загрузил данные');
     }
 
     showNotification(message) {

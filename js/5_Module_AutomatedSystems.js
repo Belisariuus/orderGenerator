@@ -613,9 +613,20 @@ export default class Module5 {
         const savedData = this.configManager.getConfig()[this.MODULE_KEY] || {};
         console.log('Загрузка сохраненных данных модуля 5:', savedData);
 
-        if (savedData.items) {
+        if (!this.container) {
+            console.log('Контейнер не инициализирован для модуля 5');
+            return;
+        }
+
+        if (Object.keys(savedData).length === 0) {
+            console.log('Нет сохраненных данных для модуля 5');
+            return;
+        }
+
+        if (savedData.items && Array.isArray(savedData.items)) {
             this.addedItems = [...savedData.items];
             this.updateAddedItemsTable();
+            console.log('✓ Модуль 5 загрузил данные');
         }
     }
 

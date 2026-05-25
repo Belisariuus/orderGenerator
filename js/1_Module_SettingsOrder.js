@@ -124,17 +124,41 @@ export default class Module1 {
 
     loadSavedData() {
         const savedConfig = this.configManager.getConfig().SettingsOrder;
-        if (savedConfig) {
+        if (savedConfig && Object.keys(savedConfig).length > 0) {
+            // Восстанавливаем тип проверки
+            if (savedConfig.auditType) {
+                const auditTypeRadio = this.container.querySelector(`input[name="auditType"][value="${savedConfig.auditType}"]`);
+                if (auditTypeRadio) {
+                    auditTypeRadio.checked = true;
+                }
+            }
+            
+            // Восстанавливаем тип распоряжения
+            if (savedConfig.orderType) {
+                const orderTypeRadio = this.container.querySelector(`input[name="orderType"][value="${savedConfig.orderType}"]`);
+                if (orderTypeRadio) {
+                    orderTypeRadio.checked = true;
+                }
+            }
+            
+            // Восстанавливаем уровень распоряжения
+            if (savedConfig.levelOrder) {
+                const levelOrderRadio = this.container.querySelector(`input[name="levelOrder"][value="${savedConfig.levelOrder}"]`);
+                if (levelOrderRadio) {
+                    levelOrderRadio.checked = true;
+                }
+            }
+            
+            // Восстанавливаем выбранный ТБ
             if (savedConfig.selectedTB) {
                 const tbSelect = this.container.querySelector('#tbSelect');
                 if (tbSelect) {
                     tbSelect.value = savedConfig.selectedTB;
                 }
-                this.defaultConfig.selectedTB = savedConfig.selectedTB;
             }
-            if (savedConfig.levelOrder === 'TB') {
-                this.toggleTBSelection();
-            }
+            
+            // Обновляем видимость блока выбора ТБ
+            this.toggleTBSelection();
         }
     }
 
