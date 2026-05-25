@@ -19,7 +19,9 @@
 
 <div class="global-actions">
     <button id="showConfigBtn">Показать конфигурацию</button>
-<!--    <button id="saveConfigBtn">Сохранить все данные</button>-->
+    <button id="downloadConfigBtn">Скачать конфиг</button>
+    <button id="uploadConfigBtn">Загрузить конфиг</button>
+    <input type="file" id="configFileInput" accept=".json" style="display: none;">
     <button id="docxGenerate">Сформировать документ</button>
 </div>
 
@@ -84,6 +86,9 @@
         if (configManager.isAllModulesSaved()) {
             console.log('✅ Все модули сохранили свои данные!');
         }
+
+        // Автоматически сохраняем в sessionStorage при любом изменении
+        configManager.saveToSessionStorage();
     });
 
     // Кнопка показа конфигурации
@@ -94,6 +99,32 @@
         preview.classList.toggle('show');
     });
 
+    // Кнопка скачивания конфигурации
+    document.getElementById('downloadConfigBtn').addEventListener('click', () => {
+        configManager.exportConfigToFile();
+    });
+
+    // Кнопка загрузки конфигурации
+    document.getElementById('uploadConfigBtn').addEventListener('click', () => {
+        document.getElementById('configFileInput').click();
+    });
+
+    // Обработка загруженного файла конфигурации
+    document.getElementById('configFileInput').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                await configManager.importConfigFromFile(file);
+                alert('Конфигурация успешно загружена! Страница будет перезагружена для применения изменений.');
+                location.reload();
+            } catch (e) {
+                alert('Ошибка при загрузке конфигурации: ' + e.message);
+            }
+            // Очищаем input для возможности повторной загрузки того же файла
+            event.target.value = '';
+        }
+    });
+
     // Генерация документа
     document.getElementById('docxGenerate').addEventListener('click', async () => {
         if (!window.docxGeneratorInstance) {
@@ -102,11 +133,19 @@
         await window.docxGeneratorInstance.prepareDocument();
     });
 
-    // Кнопка сохранения
-    // document.getElementById('saveConfigBtn').addEventListener('click', () => {
-    //    configManager.saveToLocalStorage();
-    // });
-
+    // Автоматическая загрузка конфигурации из sessionStorage при старте
+    window.addEventListener('DOMContentLoaded', () => {
+        if (configManager.loadFromSessionStorage()) {
+            console.log('Конфигурация восстановлена из sessionStorage');
+            
+            // Перерисовываем модули с восстановленными данными
+            moduleInstances.forEach(module => {
+                if (typeof module.loadSavedData === 'function') {
+                    module.loadSavedData();
+                }
+            });
+        }
+    });
 
     // Выводим начальную конфигурацию в консоль
     console.log('Начальная конфигурация:', configManager.getConfig());

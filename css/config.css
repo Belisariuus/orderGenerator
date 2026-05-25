@@ -40,6 +40,24 @@
     background-color: #1976D2;
 }
 
+/* Стили для кнопки скачивания */
+#downloadConfigBtn {
+    background-color: #4CAF50;
+}
+
+#downloadConfigBtn:hover {
+    background-color: #45a049;
+}
+
+/* Стили для кнопки загрузки */
+#uploadConfigBtn {
+    background-color: #FF9800;
+}
+
+#uploadConfigBtn:hover {
+    background-color: #e68900;
+}
+
 .config-preview {
     position: fixed;
     bottom: 20px;
