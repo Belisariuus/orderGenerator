@@ -108,17 +108,23 @@ class ConfigManager {
         if (saved) {
             try {
                 const loadedConfig = JSON.parse(saved);
-                // Полная замена конфигурации
-                this.config = { ...this.config, ...loadedConfig };
+                // Полная замена конфигурации с глубоким слиянием
+                Object.keys(this.config).forEach(key => {
+                    if (loadedConfig[key]) {
+                        this.config[key] = { ...loadedConfig[key] };
+                    }
+                });
                 // Восстанавливаем статус сохранения для всех модулей
                 Object.keys(loadedConfig).forEach(moduleName => {
                     if (moduleName !== 'Generator') {
                         this.saveStatus.set(moduleName, true);
                     }
                 });
-                // Уведомляем подписчиков
-                this.notifyListeners('SessionRestore', null, this.config);
-                console.log('✓ Конфигурация загружена из sessionStorage');
+                // Уведомляем подписчиков о восстановлении (для обновления UI)
+                setTimeout(() => {
+                    this.notifyListeners('SessionRestore', null, this.config);
+                }, 50);
+                console.log('✓ Конфигурация загружена из sessionStorage:', this.config);
                 return true;
             } catch (e) {
                 console.error('Ошибка загрузки из sessionStorage:', e);

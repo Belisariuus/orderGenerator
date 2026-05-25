@@ -182,7 +182,12 @@ export default class Module2 {
     // Загрузка сохраненных данных
     loadSavedData() {
         const savedData = this.configManager.getConfig()[this.MODULE_KEY] || {};
-        console.log('Загрузка сохраненных данных:', savedData);
+        console.log('Загрузка сохраненных данных модуля 2:', savedData);
+
+        if (!this.container || !this.currentScenario) {
+            console.log('Контейнер или сценарий не инициализированы');
+            return;
+        }
 
         if (Object.keys(savedData).length === 0) {
             console.log('Нет сохраненных данных для модуля 2');
@@ -192,13 +197,14 @@ export default class Module2 {
         const inputs = this.container.querySelectorAll('input, select');
         inputs.forEach(input => {
             const key = input.id;
-            if (savedData.hasOwnProperty(key) && savedData[key] !== null) {
+            if (savedData.hasOwnProperty(key) && savedData[key] !== null && savedData[key] !== undefined) {
                 if (input.type === 'checkbox') {
                     input.checked = savedData[key];
+                    console.log(`Загружен чекбокс ${key}:`, savedData[key]);
                 } else {
                     input.value = savedData[key];
+                    console.log(`Загружено поле ${key}:`, savedData[key]);
                 }
-                console.log(`Загружено поле ${key}:`, savedData[key]);
             }
         });
     }

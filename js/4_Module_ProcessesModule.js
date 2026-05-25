@@ -1506,17 +1506,29 @@ export default class Module4 {
         const savedData = this.configManager.getConfig()[this.MODULE_KEY] || {};
         console.log('Загрузка сохраненных данных модуля 4:', savedData);
 
-        if (this.currentScenario === 'new' && savedData.items) {
+        if (!this.container || !this.currentScenario) {
+            console.log('Контейнер или сценарий не инициализированы для модуля 4');
+            return;
+        }
+
+        if (Object.keys(savedData).length === 0) {
+            console.log('Нет сохраненных данных для модуля 4');
+            return;
+        }
+
+        if (this.currentScenario === 'new' && savedData.items && Array.isArray(savedData.items)) {
             this.includeItems = [...savedData.items];
             this.updateIncludeItemsTable();
+            console.log('✓ Модуль 4 загрузил данные (новый сценарий)');
         } else if (this.currentScenario === 'change') {
-            if (savedData.include) {
+            if (savedData.include && Array.isArray(savedData.include)) {
                 this.includeItems = [...savedData.include];
             }
-            if (savedData.exclude) {
+            if (savedData.exclude && Array.isArray(savedData.exclude)) {
                 this.excludeItems = [...savedData.exclude];
             }
             this.updateChangeItemsTable();
+            console.log('✓ Модуль 4 загрузил данные (сценарий изменений)');
         }
     }
 
