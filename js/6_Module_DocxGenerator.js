@@ -188,7 +188,7 @@ export default class DocxGenerator {
             attrs.reason = questionnaire.reason || '';
             
             if (questionnaire.newEndDate) {
-                const oldDate = questionnaire.oldEndDate || '';
+                const oldDate = questionnaire.oldEndDate || questionnaire.startDate || '';
                 attrs.dates = `${this.formatDateToSlash(oldDate)},${this.formatDateToSlash(questionnaire.newEndDate)}`;
             }
             
@@ -1260,10 +1260,6 @@ export default class DocxGenerator {
             dictOrder.processesAdded = listDictProcessesAdd;
             dictOrder.showApp2 = true;
             dictOrder.showLinkApp2 = true;
-        } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
-            dictOrder.pril_rem = 2;
-            dictOrder.showApp2 = false;
-            dictOrder.showLinkApp2 = false;
         } else {
             dictOrder.pril_rem = 1;
             dictOrder.showApp2 = false;
@@ -1276,10 +1272,6 @@ export default class DocxGenerator {
             dictOrder.showApp3 = true;
             dictOrder.showLinkApp3 = true;
         } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
-            dictOrder.pril_aski = 3;
-            dictOrder.showApp3 = false;
-            dictOrder.showLinkApp3 = false;
-        } else if (this.newListProcessesAudit) {
             dictOrder.pril_aski = 2;
             dictOrder.showApp3 = false;
             dictOrder.showLinkApp3 = false;
