@@ -78,7 +78,11 @@ export default class Module4 {
 
         if (this.currentScenario) {
             this.renderForm();
-            this.loadSavedData();
+            
+            // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
         }
     }
 
@@ -134,7 +138,11 @@ export default class Module4 {
             this.currentScenario = scenario;
             this.clearModuleData();
             this.renderForm();
-            this.loadSavedData();
+            
+            // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
         }
     }
 

@@ -121,8 +121,15 @@ class ConfigManager {
                     }
                 });
                 // Уведомляем подписчиков о восстановлении (для обновления UI)
+                // Сначала уведомляем SettingsOrder чтобы другие модули могли отрендериться
                 setTimeout(() => {
-                    this.notifyListeners('SessionRestore', null, this.config);
+                    if (this.config.SettingsOrder && Object.keys(this.config.SettingsOrder).length > 0) {
+                        this.notifyListeners('SettingsOrder', this.config.SettingsOrder, this.config);
+                    }
+                    // Затем уведомляем о полном восстановлении
+                    setTimeout(() => {
+                        this.notifyListeners('SessionRestore', null, this.config);
+                    }, 50);
                 }, 50);
                 console.log('✓ Конфигурация загружена из sessionStorage:', this.config);
                 return true;
@@ -176,8 +183,20 @@ class ConfigManager {
                         }
                     });
 
-                    // Уведомляем подписчиков
-                    this.notifyListeners('FileImport', null, this.config);
+                    // Сохраняем в sessionStorage
+                    this.saveToSessionStorage();
+
+                    // Уведомляем подписчиков - сначала SettingsOrder для рендеринга других модулей
+                    setTimeout(() => {
+                        if (this.config.SettingsOrder && Object.keys(this.config.SettingsOrder).length > 0) {
+                            this.notifyListeners('SettingsOrder', this.config.SettingsOrder, this.config);
+                        }
+                        // Затем полное уведомление
+                        setTimeout(() => {
+                            this.notifyListeners('FileImport', null, this.config);
+                        }, 50);
+                    }, 50);
+                    
                     console.log('✓ Конфигурация импортирована из файла');
                     resolve(this.config);
                 } catch (e) {

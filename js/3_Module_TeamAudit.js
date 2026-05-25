@@ -126,7 +126,11 @@ export default class Module3 {
             this.clearModuleData();
             this.updateFilteredEmployees();
             this.renderForm();
-            this.loadSavedData();
+            
+            // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
         }
     }
 
