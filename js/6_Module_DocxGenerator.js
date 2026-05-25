@@ -1,31 +1,1152 @@
 export default class DocxGenerator {
     constructor(configManager) {
-        this.config = configManager.config;
-        this.SettingsOrder = this.config.SettingsOrder || {};
-        this.tbList = {
-            'Байкальский банк': 'Байкальскому банку',
-            'Волго-Вятский банк': 'Волго-Вятскому банку',
-            'Дальневосточный банк': 'Дальневосточному банку',
-            'Московский банк': 'Московскому банку',
-            'Поволжский банк': 'Поволжскому банку',
-            'Северо-Западный банк': 'Северо-Западному банку',
-            'Сибирский банк': 'Сибирскому банку',
-            'Среднерусский банк': 'Среднерусскому банку',
-            'Уральский банк': 'Уральскому банку',
-            'Центрально-Чернозёмный банк': 'Центрально-Чернозёмному банку',
-            'Юго-Западный банк': 'Юго-Западному банку'
+        this.configManager = configManager;
+        this.config = configManager.getConfig();
+        
+        // Словари названий территориальных банков
+        this.dictNameTB = {
+            "ТБ ББ": ["Байкальский банк", "Байкальскому банку"],
+            "ТБ ВВБ": ["Волго-Вятский банк", "Волго-Вятскому банку"],
+            "ТБ ДВБ": ["Дальневосточный банк", "Дальневосточному банку"],
+            "ТБ МБ": ["Московский банк", "Московскому банку"],
+            "ТБ ПБ": ["Поволжский банк", "Поволжскому банку"],
+            "ТБ СЗБ": ["Северо-Западный банк", "Северо-Западному банку"],
+            "ТБ СИБ": ["Сибирский банк", "Сибирскому банку"],
+            "ТБ СРБ": ["Среднерусский банк", "Среднерусскому банку"],
+            "ТБ УРАЛ": ["Уральский банк", "Уральскому банку"],
+            "ТБ ЦЧБ": ["Центрально-Чернозёмный банк", "Центрально-Чернозёмному банку"],
+            "ТБ ЮЗБ": ["Юго-Западный банк", "Юго-Западному банку"],
+            "ЦА": ["Центральный аппарат", "Центральному аппарату"]
         };
 
-        this.listWordForms = (this.SettingsOrder.auditType === 'execution') ? [
-            'О проведении аудиторской проверки',
-        ] : [
+        // Словарь должностей для сортировки
+        this.dictNamePost = {
+            'Аудитор': 1,
+            'Аудитор-младший аналитик данных': 1,
+            'Аудитор-младший исследователь данных': 1,
+            'Ведущ.спец.по аудиту-исследователь данн.': 2,
+            'Ведущий аудитор': 3,
+            'Ведущий аудитор-аналитик данных': 3,
+            'Ведущий аудитор-исследователь данных': 3,
+            'Ведущий специалист по цифр.техн-м аудита': 2,
+            'Ведущий эксперт по аудиту': 4,
+            'Главный аудитор': 4,
+            'Главный аудитор-аналитик данных': 4,
+            'Главный аудитор-исследователь данных': 4,
+            'Главный инженер по разработке': 4,
+            'Главный эксперт по цифр.техн-м аудита': 4,
+            'Директор управления': 8,
+            'Заместитель директора управления': 7,
+            'Заместитель начальника отдела': 5,
+            'Исполнительный директор-начальник отдела': 10,
+            'Менеджер направления': 5,
+            'Менеджер по работе с регионами': 5,
+            'Начальник отдела': 6,
+            'Рук-ль направления по исслед.данных': 9,
+            'Руководитель направления': 9,
+            'Специалист': 1,
+            'Специалист по цифр.техн-м аудита': 1,
+            'Старший аудитор': 2,
+            'Старший аудитор-аналитик данных': 2,
+            'Старший аудитор-исследователь данных': 2,
+            'Старший управляющий директор-дир.управл.': 11,
+            'Управляющий директор': 7,
+            'Управляющий директор-зам.дир.управления': 7,
+            'Эксперт по контролю операций': 3,
+            'Эксперт по цифр.техн-м аудита': 3
+        };
+
+        // Формы слов в зависимости от типа проверки
+        this.listWordFormsPrep = [
             'О подготовке к аудиторской проверке',
+            'подготовку к аудиторской проверке',
+            'подготовку',
+            'подготовки к проверки',
+            '',
+            'подготовки к аудиторской проверке',
+            'для подготовки аудиторской проверки',
+            'подготовки к аудиторской проверке',
+            'подготовку аудиторской проверки',
+            '',
+            'начать',
+            'подготовку к аудиторской проверке'
         ];
+
+        this.listWordFormsExecute = [
+            'О проведении аудиторской проверки',
+            'к проведению аудиторской проверки',
+            'реализацию проверки',
+            'проведения проверки',
+            'аудиторской проверки ',
+            'аудиторской проверки',
+            'для проведения аудиторской проверки',
+            'проведения проверки',
+            'проведение проверки',
+            'проверочные действия',
+            'приступить',
+            'реализацию проверки'
+        ];
+
+        // Данные из Excel файлов (будут загружены при необходимости)
+        this.dfAutomatedSystems = null;
+        this.dfProcessesClientPath = null;
     }
 
-    async generateDocument(dict) {
+    /**
+     * Собирает конфигурацию из всех модулей и генерирует документ
+     * @param {string} taskName - Имя папки задачи для сохранения файла
+     */
+    async generateFromConfig(taskName) {
+        // Получаем данные из всех модулей через configManager
+        const settingsOrder = this.configManager.getModuleConfig('SettingsOrder');
+        const questionnaire = this.configManager.getModuleConfig('Questionnaire');
+        const teamAudit = this.configManager.getModuleConfig('TeamAudit');
+        const processesModule = this.configManager.getModuleConfig('ProcessesModule');
+        const automatedSystems = this.configManager.getModuleConfig('AutomatedSystems');
+
+        console.log('Генерация документа из конфигурации:', {
+            settingsOrder,
+            questionnaire,
+            teamAudit,
+            processesModule,
+            automatedSystems
+        });
+
+        // Преобразуем данные из модулей в формат для генератора
+        const dictAttributes = this.prepareAttributes(
+            settingsOrder,
+            questionnaire,
+            teamAudit,
+            processesModule,
+            automatedSystems
+        );
+
+        // Генерируем документ
+        await this.generateDocument(dictAttributes, taskName);
+    }
+
+    /**
+     * Подготавливает атрибуты для генератора из данных модулей
+     */
+    prepareAttributes(settingsOrder, questionnaire, teamAudit, processesModule, automatedSystems) {
+        const attrs = {};
+
+        // Из SettingsOrder
+        attrs.pod_or_prov = settingsOrder.auditType === 'preparation' ? '0' : '1';
+        attrs.isTB = settingsOrder.levelOrder === 'TB' ? '1' : '0';
+        if (settingsOrder.selectedTB) {
+            // Находим код ТБ по названию
+            const tbCode = Object.keys(this.dictNameTB).find(key => 
+                this.dictNameTB[key][0] === settingsOrder.selectedTB
+            );
+            attrs.tbName = tbCode || 'ЦА';
+        } else {
+            attrs.tbName = 'ЦА';
+        }
+
+        // Из Questionnaire
+        attrs.name = questionnaire.auditName || '';
+        
+        if (settingsOrder.orderType === 'change') {
+            // Сценарий изменения
+            attrs.provNum = questionnaire.orderNumber || '';
+            attrs.reason = questionnaire.reason || '';
+            
+            if (questionnaire.newEndDate) {
+                const oldDate = questionnaire.oldEndDate || '';
+                attrs.dates = `${this.formatDateToSlash(oldDate)},${this.formatDateToSlash(questionnaire.newEndDate)}`;
+            }
+            
+            if (questionnaire.newActSendDate) {
+                attrs.act_date = this.formatDateToSlash(questionnaire.newActSendDate);
+            }
+        } else {
+            // Новый сценарий
+            attrs.dates = `${this.formatDateToSlash(questionnaire.startDate)},${this.formatDateToSlash(questionnaire.endDate)}`;
+            attrs.punkt = questionnaire.basisPoint || '';
+            
+            if (questionnaire.actSendDate) {
+                attrs.act_date = this.formatDateToSlash(questionnaire.actSendDate);
+            }
+        }
+
+        // Из TeamAudit
+        if (teamAudit.curators && teamAudit.curators.length > 0) {
+            attrs.curator = teamAudit.curators.map(cur => 
+                `${cur.fullName}(${cur.tabNumber}),${cur.department},${cur.position},${cur.bank}`
+            ).join(';');
+        } else {
+            attrs.curator = '-';
+        }
+
+        if (teamAudit.leader) {
+            const leader = teamAudit.leader;
+            attrs.supervisor = `${leader.position},${leader.department},${leader.fullName}(${leader.tabNumber}),${leader.bank}`;
+        }
+
+        if (teamAudit.deputy) {
+            const deputy = teamAudit.deputy;
+            attrs.subsuper = `${deputy.position},${deputy.department},${deputy.fullName}(${deputy.tabNumber}),${deputy.bank}`;
+        }
+
+        if (teamAudit.control) {
+            const control = teamAudit.control;
+            attrs.director = `${control.fullName}(${control.tabNumber}),${control.position}`;
+        }
+
+        if (teamAudit.signer) {
+            const signer = teamAudit.signer;
+            attrs.podpis = `${signer.fullName}(${signer.tabNumber}),${signer.position}`;
+        }
+
+        // Команда проверки
+        if (teamAudit.teamMembers && teamAudit.teamMembers.length > 0) {
+            attrs.emps = teamAudit.teamMembers.map(emp => 
+                `${emp.fullName}(${emp.tabNumber}),${emp.department},${emp.position},${emp.bank}`
+            ).join(';');
+        } else {
+            attrs.emps = '';
+        }
+
+        // Изменения команды
+        if (teamAudit.changes) {
+            if (teamAudit.changes.include && teamAudit.changes.include.length > 0) {
+                attrs.addEmployees = teamAudit.changes.include.map(emp => 
+                    `${emp.fullName}(${emp.tabNumber}),${emp.department},${emp.position},${emp.bank}`
+                ).join(';');
+            }
+            if (teamAudit.changes.exclude && teamAudit.changes.exclude.length > 0) {
+                attrs.delEmployees = teamAudit.changes.exclude.map(emp => 
+                    `${emp.fullName}(${emp.tabNumber}),${emp.department},${emp.position},${emp.bank}`
+                ).join(';');
+            }
+            if (teamAudit.changes.signer) {
+                const signer = teamAudit.changes.signer;
+                attrs.podpis = `${signer.fullName}(${signer.tabNumber}),${signer.position}`;
+            }
+        }
+
+        // Из ProcessesModule
+        if (processesModule.items && processesModule.items.length > 0) {
+            const procsKPs = processesModule.items.map(item => {
+                const procCode = item.processCode.replace('П', '');
+                const kpCode = item.pathCode && item.pathCode !== '-' ? item.pathCode.replace('КП', '') : '';
+                return `${procCode}$${kpCode}`;
+            }).join('%');
+            attrs.procsKPs = ` ${procsKPs} `;
+        }
+
+        if (processesModule.include && processesModule.include.length > 0) {
+            const procsKPsAdd = processesModule.include.map(item => {
+                const procCode = item.processCode.replace('П', '');
+                const kpCode = item.pathCode && item.pathCode !== '-' ? item.pathCode.replace('КП', '') : '';
+                return `${procCode}$${kpCode}`;
+            }).join('%');
+            attrs.procsKPsAdd = ` ${procsKPsAdd} `;
+        }
+
+        if (processesModule.exclude && processesModule.exclude.length > 0) {
+            const procsKPsRemove = processesModule.exclude.map(item => {
+                const procCode = item.processCode.replace('П', '');
+                const kpCode = item.pathCode && item.pathCode !== '-' ? item.pathCode.replace('КП', '') : '';
+                return `${procCode}$${kpCode}`;
+            }).join('%');
+            attrs.procsKPsRemove = ` ${procsKPsRemove} `;
+        }
+
+        // Из AutomatedSystems
+        if (automatedSystems.items && automatedSystems.items.length > 0) {
+            const askiList = automatedSystems.items.map(item => {
+                const sysId = Math.abs(parseInt(item.systemId.replace(/\D/g, '') || '0'));
+                const roles = item.roles && item.roles.length > 0 
+                    ? item.roles.map(r => r.roleIndex || '0').join(',')
+                    : '-1';
+                const proc = item.processCode ? item.processCode.replace('П', '') : '';
+                const kp = item.pathCode ? item.pathCode.replace('КП', '') : '';
+                
+                // Сотрудники
+                const employees = item.employees && item.employees.length > 0
+                    ? item.employees.map(emp => `${emp.fullName}(${emp.tabNumber})^${emp.position}^${emp.bank}`).join(',')
+                    : '-1';
+                
+                return `${sysId},${roles},${proc},${kp},{${employees}}`;
+            });
+            attrs.aski = ` ${askiList.join('%')} `;
+        }
+
+        // Пользователь (заглушка, можно передать дополнительно)
+        attrs.user = 'user';
+        attrs.email = 'user@example.com';
+
+        return attrs;
+    }
+
+    /**
+     * Форматирует дату из YYYY-MM-DD в MM/DD/YYYY
+     */
+    formatDateToSlash(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+        return dateStr;
+    }
+
+    /**
+     * Загружает Excel файлы с данными
+     */
+    async loadExcelData() {
+        if (!this.dfAutomatedSystems) {
+            const responseAS = await fetch("xlsxs/indexed_ases.xlsx");
+            const arrayBufferAS = await responseAS.arrayBuffer();
+            this.dfAutomatedSystems = this.parseExcelToDF(arrayBufferAS);
+        }
+
+        if (!this.dfProcessesClientPath) {
+            const responsePC = await fetch("xlsxs/all_procs.xlsx");
+            const arrayBufferPC = await responsePC.arrayBuffer();
+            this.dfProcessesClientPath = this.parseExcelToDF(arrayBufferPC);
+        }
+    }
+
+    /**
+     * Парсит Excel файл в структуру данных (аналог pandas DataFrame)
+     */
+    parseExcelToDF(arrayBuffer) {
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        return jsonData;
+    }
+
+    /**
+     * Фильтрует данные по колонке (аналог pandas фильтрации)
+     */
+    filterDF(df, columnName, value) {
+        return df.filter(row => row[columnName] === value);
+    }
+
+    /**
+     * Основная функция генерации документа
+     */
+    async generateDocument(dictAttributesJson, pathTaskFolder) {
+        await this.loadExcelData();
+
+        this.dictAttributesJson = dictAttributesJson;
+        this.pathTaskFolder = pathTaskFolder;
+        
+        // Инициализация основных атрибутов
+        this.nameAudit = dictAttributesJson['name'];
+        this.flagPrepOrExecute = dictAttributesJson['pod_or_prov'];
+        this.dataEmpExecutionControl = dictAttributesJson['director'];
+        this.dataSignatory = dictAttributesJson['podpis'].split(',');
+        this.userLogin = dictAttributesJson['user'];
+        this.userEmail = dictAttributesJson['email'];
+
+        // Обработка автоматизированных систем
+        if (dictAttributesJson['aski'] && dictAttributesJson['aski'].length > 1) {
+            this.listAutomatedSystemsAudit = dictAttributesJson['aski']
+                .trim(' %')
+                .split('%')
+                .map(col => col.split('$'));
+        } else {
+            this.listAutomatedSystemsAudit = null;
+        }
+
+        // Определение типа распоряжения (изменение или нет)
+        this.flagIsChange = 'provNum' in dictAttributesJson ? 1 : 0;
+
+        // Обработка территориального банка
+        if (dictAttributesJson['isTB'] === "1") {
+            this.flagIsTB = 1;
+            this.nameTB = dictAttributesJson['tbName'];
+        } else {
+            this.flagIsTB = 0;
+        }
+
+        this.nameFile = `Распоряжение_${this.pathTaskFolder}.docx`;
+
+        if (!this.flagIsChange) {
+            // Распоряжение на подготовку или проведение
+            this.nameTemplate = 'tpl/TemplateOrderExecuteOrPrepAudit2026.docx';
+            [this.dateStart, this.dateEnd] = dictAttributesJson['dates'].split(',');
+            this.pointAudit = dictAttributesJson['punkt'];
+            this.dataHeadAudit = dictAttributesJson['supervisor'].split(',');
+            this.listDataEmployeesAudit = dictAttributesJson['emps']
+                .trim(';')
+                .split(';')
+                .map(col => col.split(','));
+
+            if (dictAttributesJson['act_date'] && dictAttributesJson['act_date'].length > 1) {
+                this.dateAct = dictAttributesJson['act_date'];
+            } else {
+                this.dateAct = null;
+            }
+
+            if (dictAttributesJson['subsuper'] && dictAttributesJson['subsuper'].length > 1) {
+                this.dataDeputyHeadAudit = dictAttributesJson['subsuper'].split(',');
+            } else {
+                this.dataDeputyHeadAudit = null;
+            }
+
+            this.listDataCuratorsAudit = dictAttributesJson['curator']
+                .split(';')
+                .map(cur => cur.split(','));
+            
+            if (this.listDataCuratorsAudit[0][0] === '-') {
+                this.listDataCuratorsAudit = null;
+            }
+
+            if (dictAttributesJson['procsKPs'] && dictAttributesJson['procsKPs'].length > 1) {
+                this.listProcessesAudit = dictAttributesJson['procsKPs']
+                    .trim(' %')
+                    .split('%')
+                    .map(col => col.split('$'));
+            } else {
+                this.listProcessesAudit = null;
+            }
+        } else {
+            // Распоряжение на изменение
+            this.nameTemplate = 'tpl/TemplateOrderChangeAudit2026.docx';
+            [this.dateOldEndAudit, this.dateNewEndAudit] = dictAttributesJson['dates'].split(',');
+            this.numberOrderAudit = dictAttributesJson['provNum'];
+            this.textReason = dictAttributesJson['reason'];
+
+            if (dictAttributesJson['procsKPsAdd'] && dictAttributesJson['procsKPsAdd'].length > 1) {
+                this.newListProcessesAudit = dictAttributesJson['procsKPsAdd']
+                    .trim(' %')
+                    .split('%')
+                    .map(col => col.split('$'));
+            } else {
+                this.newListProcessesAudit = null;
+            }
+
+            if (dictAttributesJson['procsKPsRemove'] && dictAttributesJson['procsKPsRemove'].length > 1) {
+                this.deleteListProcessesAudit = dictAttributesJson['procsKPsRemove']
+                    .trim(' %')
+                    .split('%')
+                    .map(col => col.split('$'));
+            } else {
+                this.deleteListProcessesAudit = null;
+            }
+
+            if (dictAttributesJson['addEmployees'] && dictAttributesJson['addEmployees'].length > 1) {
+                this.listDataEmployeesAdd = dictAttributesJson['addEmployees']
+                    .trim(';')
+                    .split(';')
+                    .map(col => col.split(','));
+            } else {
+                this.listDataEmployeesAdd = null;
+            }
+
+            if (dictAttributesJson['delEmployees'] && dictAttributesJson['delEmployees'].length > 1) {
+                this.listDataEmployeesDel = dictAttributesJson['delEmployees']
+                    .trim(';')
+                    .split(';')
+                    .map(col => col.split(','));
+            } else {
+                this.listDataEmployeesDel = null;
+            }
+        }
+
+        // Выбор форм слов
+        this.listWordForms = this.flagPrepOrExecute === '1' 
+            ? this.listWordFormsExecute 
+            : this.listWordFormsPrep;
+
+        // Генерация документа в зависимости от типа
+        if (this.flagIsChange) {
+            await this.generateChangeAudit();
+        } else {
+            await this.generatePrepOrExecuteAudit();
+        }
+    }
+
+    /**
+     * Генерация распоряжения на подготовку или проведение проверки
+     */
+    async generatePrepOrExecuteAudit() {
+        // Для сотрудника, исполняющего обязанности контроля исполнения
+        const [empExecutionControlFio, empExecutionControlPost] = this.dataEmpExecutionControl.split(',');
+        const empExecutionControlShortFio = this.shortFio(empExecutionControlFio, true);
+        const empExecutionControlPostGent = this.titleToGent(empExecutionControlPost.replace('управления', ''));
+        
+        let empExecutionControl;
+        if (this.flagIsTB) {
+            empExecutionControl = `${empExecutionControlPostGent} Управления внутреннего аудита по ${this.dictNameTB[this.nameTB][1]} ${empExecutionControlShortFio}`;
+        } else {
+            empExecutionControl = `${empExecutionControlPostGent} Управления внутреннего аудита ${empExecutionControlShortFio}`;
+        }
+
+        // Список словарей для генерации таблицы сотрудников
+        const listDictEmployees = [];
+        this.listDataEmployeesAudit.sort((a, b) => {
+            const tbCompare = a[3].localeCompare(b[3]);
+            if (tbCompare !== 0) return -tbCompare; // reverse
+            const postA = this.dictNamePost[a[2]] || 0;
+            const postB = this.dictNamePost[b[2]] || 0;
+            return postA - postB;
+        }).reverse();
+
+        for (let i = 0; i < this.listDataEmployeesAudit.length; i++) {
+            const emp = this.listDataEmployeesAudit[i];
+            const fio = this.removeBrackets(emp[0]);
+            const tn = emp[0].substring(emp[0].indexOf('(') + 1, emp[0].lastIndexOf(')'));
+            
+            listDictEmployees.push({
+                title: this.deabbrTitle(emp[2]),
+                dep: emp[1],
+                tb: this.dictNameTB[emp[3]][0],
+                i: String(i + 1),
+                fio: fio,
+                tn: tn
+            });
+        }
+
+        // Словари для генерации таблицы процессов
+        const listDictProcesses = [];
+        const uniqueClientPath = new Set();
+        const uniqueProcess = new Set();
+        let i_CP = 1;
+        let i_P = 1;
+        let countProcessClientPath = '';
+
+        if (this.listProcessesAudit) {
+            // Разбиваем по парам и сортируем для группировки
+            const listPairsProcessesClientPath = [];
+            for (const row of this.listProcessesAudit) {
+                if (row[1].includes('^')) {
+                    const CPS = row[1].split('^');
+                    for (const CP of CPS) {
+                        listPairsProcessesClientPath.push([row[0], CP]);
+                    }
+                } else {
+                    listPairsProcessesClientPath.push(row);
+                }
+            }
+            listPairsProcessesClientPath.sort((a, b) => b[1].localeCompare(a[1]));
+
+            let prevCP = 0;
+            for (const row of listPairsProcessesClientPath) {
+                const rowProcess = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const dictProcess = {
+                    p_name: rowProcess['Наименование процесса'],
+                    p_code: rowProcess['Код процесса'],
+                    p_owner: rowProcess['Подразделение - владелец процесса'],
+                    p_i: String(i_P++)
+                };
+                uniqueProcess.add(dictProcess.p_code);
+
+                // Если нет клиентских путей
+                if (row[1].length <= 1) {
+                    dictProcess.kp_i = '-';
+                    dictProcess.kp_code = '-';
+                    dictProcess.kp_name = '-';
+                    dictProcess.kp_owner = '-';
+                    listDictProcesses.push(dictProcess);
+                } else {
+                    const codeCP = row[1];
+                    if (prevCP !== codeCP) {
+                        const rowClientPath = this.filterDF(rowProcess, 'Код КП', 'КП' + codeCP)[0];
+                        const newDictProcess = { ...dictProcess };
+                        newDictProcess.kp_i = String(i_CP++);
+                        newDictProcess.kp_name = rowClientPath['Наименование КП'];
+                        newDictProcess.kp_code = 'КП' + codeCP;
+                        newDictProcess.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        uniqueClientPath.add(newDictProcess.kp_code);
+                        listDictProcesses.push(newDictProcess);
+                    } else {
+                        dictProcess.kp_i = '';
+                        dictProcess.kp_name = '';
+                        dictProcess.kp_code = '';
+                        dictProcess.kp_owner = '';
+                        listDictProcesses.push(dictProcess);
+                    }
+                    prevCP = codeCP;
+                }
+            }
+
+            // Количество процессов для первой страницы
+            const countProcess = uniqueProcess.size;
+            let strCountProcess;
+            const lastDigit = String(countProcess).slice(-1);
+            if (lastDigit === '1' && countProcess !== 11) {
+                strCountProcess = `${countProcess} централизованный процесс`;
+            } else if (['2', '3', '4'].includes(lastDigit) && ![12, 13, 14].includes(countProcess)) {
+                strCountProcess = `${countProcess} централизованных процесса`;
+            } else {
+                strCountProcess = `${countProcess} централизованных процессов`;
+            }
+            countProcessClientPath = strCountProcess;
+        }
+
+        // Словари для генерации таблицы с доступами
+        let listDictAutomatedSystems = [];
+        if (this.listAutomatedSystemsAudit) {
+            let i = 0;
+            for (const AS of this.listAutomatedSystemsAudit) {
+                i++;
+                let first = true;
+                const emp_tns = AS[AS.length - 1].slice(1, -1).split(',');
+                const rowsAS = this.filterDF(this.dfAutomatedSystems, 'as_index', Math.abs(parseInt(AS[0])));
+
+                for (const emp_tn of emp_tns) {
+                    const dictAutomatedSystems = {};
+                    if (!first) {
+                        dictAutomatedSystems.i = '';
+                        dictAutomatedSystems.name = '';
+                        dictAutomatedSystems.ke = '';
+                        dictAutomatedSystems.roles = '';
+                        dictAutomatedSystems.kp = '';
+                        dictAutomatedSystems.proc = '';
+                    } else {
+                        dictAutomatedSystems.i = String(i);
+                        dictAutomatedSystems.name = rowsAS[0]['title'];
+                        dictAutomatedSystems.ke = `${rowsAS[0]['affected_item']}\r\n${rowsAS[0]['logical_name']}`;
+                        dictAutomatedSystems.kp = AS[AS.length - 2];
+                        dictAutomatedSystems.proc = AS[AS.length - 3];
+
+                        if (parseInt(AS[0]) < 0) {
+                            dictAutomatedSystems.name += ' (+реплика)';
+                        }
+
+                        if (AS[1] === '-1') {
+                            dictAutomatedSystems.roles = 'Роль, позволяющая просматривать необходимую информацию в рамках проверки.';
+                        } else {
+                            const roleIndices = AS.slice(1, AS.length - 3);
+                            dictAutomatedSystems.roles = roleIndices
+                                .map(role_index => {
+                                    const roleRow = this.filterDF(rowsAS, 'role_index', parseInt(role_index))[0];
+                                    return roleRow ? roleRow['name'] : '';
+                                })
+                                .join('\r\n');
+                        }
+                    }
+
+                    if (emp_tn === '-1') {
+                        dictAutomatedSystems.emp_name = 'Все участники (Приложение 1)';
+                    } else {
+                        const cur_emp = listDictEmployees.find(e => e.tn === emp_tn);
+                        if (cur_emp) {
+                            dictAutomatedSystems.emp_name = cur_emp.fio;
+                            dictAutomatedSystems.title = this.getFullTitle(cur_emp.title, cur_emp.tb);
+                            dictAutomatedSystems.tn = cur_emp.tn;
+                        }
+                    }
+
+                    first = false;
+                    listDictAutomatedSystems.push(dictAutomatedSystems);
+                }
+            }
+        }
+
+        // Форматирование дат
+        const formatDate = (dateStr) => {
+            if (!dateStr || !dateStr.includes('/')) return '';
+            const parts = dateStr.split('/');
+            return `${parts[1].padStart(2, '0')}.${parts[0].padStart(2, '0')}.${parts[2]}`;
+        };
+
+        const startDateFull = formatDate(this.dateStart);
+        const endDateFull = formatDate(this.dateEnd);
+        const dateActFull = formatDate(this.dateAct);
+
+        // Куратор
+        let stringCurators = '';
+        let plurCurators = 'куратора';
+        if (this.listDataCuratorsAudit) {
+            const curatorParts = [];
+            for (let i = 0; i < this.listDataCuratorsAudit.length; i++) {
+                const curator = this.listDataCuratorsAudit[i];
+                const curatorFIO = this.shortFio(this.removeBrackets(curator[0]), false, true);
+                const curatorPost = this.getFullTitle(curator[1].toLowerCase(), curator[2], true, true, true);
+                curatorParts.push(`${curatorFIO} – ${curatorPost}`);
+            }
+            stringCurators = curatorParts.join(', ');
+            if (this.listDataCuratorsAudit.length > 1) {
+                plurCurators = 'кураторов';
+            }
+        }
+
+        // Руководитель
+        const headAuditFIO = this.shortFio(this.removeBrackets(this.dataHeadAudit[2]), false, true);
+        const headAuditPost = this.getFullTitle(this.dataHeadAudit[0].toLowerCase(), this.dataHeadAudit[this.dataHeadAudit.length - 1], false, true, true);
+
+        // Зам руководителя
+        let deputyHeadFIO = '';
+        let deputyHeadPost = '';
+        if (this.dataDeputyHeadAudit) {
+            deputyHeadFIO = this.shortFio(this.removeBrackets(this.dataDeputyHeadAudit[2]), false, true);
+            deputyHeadPost = this.getFullTitle(this.dataDeputyHeadAudit[0].toLowerCase(), this.dataDeputyHeadAudit[this.dataDeputyHeadAudit.length - 1], true, true, true);
+        }
+
+        // Подписант
+        let signatoryFIO, signatoryPost;
+        if (!this.flagIsTB) {
+            signatoryFIO = this.shortFio(this.dataSignatory[0]);
+            signatoryPost = this.dataSignatory[1]
+                .replace('зам.дир.', 'заместитель директора ')
+                .replace('дир.управл.', 'директор управления')
+                .replace('управления', 'Управления внутреннего аудита');
+        } else {
+            signatoryFIO = this.shortFio(this.dataSignatory[0]);
+            const fullNameTB = this.dictNameTB[this.nameTB][1];
+            signatoryPost = this.dataSignatory[1]
+                .replace('управления', 'Управления внутреннего аудита') + ' по ' + fullNameTB;
+        }
+
+        // Определение ca_tb
+        let ca_tb = "Территориальный банк";
+        for (const dict_emp of listDictEmployees) {
+            if (dict_emp.tb.includes('Центральный аппарат')) {
+                ca_tb = "Центральный аппарат/Территориальный банк";
+                break;
+            }
+        }
+
+        // Подготовка словаря для рендеринга
+        const dictOrder = {
+            name: this.nameAudit.trim(),
+            pv_title: this.listWordForms[0],
+            pv1: this.listWordForms[1],
+            pv2: this.listWordForms[2],
+            pv3: this.listWordForms[3],
+            pv4: this.listWordForms[4],
+            pv5: this.listWordForms[5],
+            pv9: this.listWordForms[9],
+            pv10: this.listWordForms[10],
+            pv_emp: this.listWordForms[6],
+            pv_ases: this.listWordForms[7],
+            podpunkt: this.pointAudit,
+            start_date: startDateFull,
+            end_date: endDateFull,
+            act_date: dateActFull,
+            curator: stringCurators,
+            supervisor: `${headAuditFIO} – ${headAuditPost}`,
+            subsuper: `${deputyHeadFIO} – ${deputyHeadPost}`,
+            curator_plur: plurCurators,
+            dir: empExecutionControl,
+            podpis_title: signatoryPost,
+            podpis_fio: signatoryFIO,
+            employees: listDictEmployees,
+            pril_procs: 2,
+            pril_aski: 3,
+            ca_tb: ca_tb
+        };
+
+        if (this.listProcessesAudit) {
+            dictOrder.kps_and_ps_count = countProcessClientPath;
+            dictOrder.processes = listDictProcesses;
+        } else {
+            dictOrder.pril_aski = 2;
+        }
+
+        if (this.flagIsTB) {
+            dictOrder.processes = listDictProcesses;
+            dictOrder.TB_full_name = this.dictNameTB[this.nameTB][0].toUpperCase();
+            dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
+        }
+
+        if (this.listAutomatedSystemsAudit) {
+            dictOrder.aski = listDictAutomatedSystems;
+        }
+
+        // Загрузка и рендеринг шаблона
+        await this.renderTemplate(dictOrder, this.nameTemplate, this.pathTaskFolder);
+    }
+
+    /**
+     * Генерация распоряжения на изменение
+     */
+    async generateChangeAudit() {
+        // Для директора
+        const [empExecutionControlFio, empExecutionControlPost] = this.dataEmpExecutionControl.split(',');
+        const empExecutionControlShortFio = this.shortFio(empExecutionControlFio, true);
+        const empExecutionControlPostGent = this.titleToGent(empExecutionControlPost.replace('управления', ''));
+        
+        let empExecutionControl;
+        if (this.flagIsTB) {
+            empExecutionControl = `${empExecutionControlPostGent} Управления внутреннего аудита по ${this.dictNameTB[this.nameTB][1]} ${empExecutionControlShortFio}`;
+        } else {
+            empExecutionControl = `${empExecutionControlPostGent} Управления внутреннего аудита ${empExecutionControlShortFio}`;
+        }
+
+        // Список словарей для генерации таблицы сотрудников
+        const listDictEmployees = [];
+        
+        if (this.listDataEmployeesAdd) {
+            this.listDataEmployeesAdd.sort((a, b) => {
+                const tbCompare = a[3].localeCompare(b[3]);
+                if (tbCompare !== 0) return -tbCompare;
+                const postA = this.dictNamePost[a[2]] || 0;
+                const postB = this.dictNamePost[b[2]] || 0;
+                return postA - postB;
+            }).reverse();
+
+            for (let i = 0; i < this.listDataEmployeesAdd.length; i++) {
+                const emp = this.listDataEmployeesAdd[i];
+                const fio = this.removeBrackets(emp[0]);
+                const tn = emp[0].substring(emp[0].indexOf('(') + 1, emp[0].lastIndexOf(')'));
+                
+                listDictEmployees.push({
+                    title: this.deabbrTitle(emp[2]),
+                    dep: emp[1],
+                    tb: this.dictNameTB[emp[3]][0],
+                    i: String(i + 1),
+                    fio: fio,
+                    tn: tn,
+                    action: 'Включить'
+                });
+            }
+        }
+
+        if (this.listDataEmployeesDel) {
+            this.listDataEmployeesDel.sort((a, b) => {
+                const tbCompare = a[3].localeCompare(b[3]);
+                if (tbCompare !== 0) return -tbCompare;
+                const postA = this.dictNamePost[a[2]] || 0;
+                const postB = this.dictNamePost[b[2]] || 0;
+                return postA - postB;
+            }).reverse();
+
+            for (let i = 0; i < this.listDataEmployeesDel.length; i++) {
+                const emp = this.listDataEmployeesDel[i];
+                const fio = this.removeBrackets(emp[0]);
+                const tn = emp[0].substring(emp[0].indexOf('(') + 1, emp[0].lastIndexOf(')'));
+                
+                listDictEmployees.push({
+                    title: this.deabbrTitle(emp[2]),
+                    dep: emp[1],
+                    tb: this.dictNameTB[emp[3]][0],
+                    i: String(i + 1),
+                    fio: fio,
+                    tn: tn,
+                    action: 'Исключить'
+                });
+            }
+        }
+
+        // Словари для генерации таблицы процессов (добавление)
+        const listDictProcessesAdd = [];
+        const uniqueClientPathAdd = new Set();
+        const uniqueProcessAdd = new Set();
+        let i_CP_Add = 1;
+        let i_P_Add = 1;
+        let countProcessClientPathAdd = '';
+
+        if (this.newListProcessesAudit) {
+            const listPairsProcessesClientPath = [];
+            for (const row of this.newListProcessesAudit) {
+                if (row[1].includes('^')) {
+                    const CPS = row[1].split('^');
+                    for (const CP of CPS) {
+                        listPairsProcessesClientPath.push([row[0], CP]);
+                    }
+                } else {
+                    listPairsProcessesClientPath.push(row);
+                }
+            }
+            listPairsProcessesClientPath.sort((a, b) => b[1].localeCompare(a[1]));
+
+            let prevCP = 0;
+            for (const row of listPairsProcessesClientPath) {
+                const rowProcess = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const dictProcess = {
+                    p_name: rowProcess['Наименование процесса'],
+                    p_code: rowProcess['Код процесса'],
+                    p_owner: rowProcess['Подразделение - владелец процесса'],
+                    p_i: String(i_P_Add++)
+                };
+                uniqueProcessAdd.add(dictProcess.p_code);
+
+                if (row[1].length <= 1) {
+                    dictProcess.kp_i = '-';
+                    dictProcess.kp_code = '-';
+                    dictProcess.kp_name = '-';
+                    dictProcess.kp_owner = '-';
+                    listDictProcessesAdd.push(dictProcess);
+                } else {
+                    const codeCP = row[1];
+                    if (prevCP !== codeCP) {
+                        const rowClientPath = this.filterDF(rowProcess, 'Код КП', 'КП' + codeCP)[0];
+                        const newDictProcess = { ...dictProcess };
+                        newDictProcess.kp_i = String(i_CP_Add++);
+                        newDictProcess.kp_name = rowClientPath['Наименование КП'];
+                        newDictProcess.kp_code = 'КП' + codeCP;
+                        newDictProcess.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        uniqueClientPathAdd.add(newDictProcess.kp_code);
+                        listDictProcessesAdd.push(newDictProcess);
+                    } else {
+                        dictProcess.kp_i = '';
+                        dictProcess.kp_name = '';
+                        dictProcess.kp_code = '';
+                        dictProcess.kp_owner = '';
+                        listDictProcessesAdd.push(dictProcess);
+                    }
+                    prevCP = codeCP;
+                }
+            }
+
+            const countProcess = uniqueProcessAdd.size;
+            let strCountProcess;
+            const lastDigit = String(countProcess).slice(-1);
+            if (lastDigit === '1' && countProcess !== 11) {
+                strCountProcess = `${countProcess} централизованный процесс`;
+            } else if (['2', '3', '4'].includes(lastDigit) && ![12, 13, 14].includes(countProcess)) {
+                strCountProcess = `${countProcess} централизованных процесса`;
+            } else {
+                strCountProcess = `${countProcess} централизованных процессов`;
+            }
+            countProcessClientPathAdd = strCountProcess;
+        }
+
+        // Словари для генерации таблицы процессов (удаление)
+        const listDictProcessesRem = [];
+        const uniqueClientPathRem = new Set();
+        const uniqueProcessRem = new Set();
+        let i_CP_Rem = 1;
+        let i_P_Rem = 1;
+        let countRemoveProcessesClientPath = '';
+
+        if (this.deleteListProcessesAudit) {
+            const listProcessClientPathPairs = [];
+            for (const row of this.deleteListProcessesAudit) {
+                if (row[1].includes('^')) {
+                    const CPS = row[1].split('^');
+                    for (const CP of CPS) {
+                        listProcessClientPathPairs.push([row[0], CP]);
+                    }
+                } else {
+                    listProcessClientPathPairs.push(row);
+                }
+            }
+            listProcessClientPathPairs.sort((a, b) => b[1].localeCompare(a[1]));
+
+            let prevCP = 0;
+            for (const row of listProcessClientPathPairs) {
+                const rowProcesses = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const dictProcesses = {
+                    p_name: rowProcesses['Наименование процесса'],
+                    p_code: rowProcesses['Код процесса'],
+                    p_owner: rowProcesses['Подразделение - владелец процесса'],
+                    p_i: String(i_P_Rem++)
+                };
+                uniqueProcessRem.add(dictProcesses.p_code);
+
+                if (row[1].length <= 1) {
+                    dictProcesses.kp_i = '-';
+                    dictProcesses.kp_code = '-';
+                    dictProcesses.kp_name = '-';
+                    dictProcesses.kp_owner = '-';
+                    listDictProcessesRem.push(dictProcesses);
+                } else {
+                    const codeCP = row[1];
+                    if (prevCP !== codeCP) {
+                        const rowClientPath = this.filterDF(rowProcesses, 'Код КП', 'КП' + codeCP)[0];
+                        const newDictProcesses = { ...dictProcesses };
+                        newDictProcesses.kp_i = String(i_CP_Rem++);
+                        newDictProcesses.kp_name = rowClientPath['Наименование КП'];
+                        newDictProcesses.kp_code = 'КП' + codeCP;
+                        newDictProcesses.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        uniqueClientPathRem.add(newDictProcesses.kp_code);
+                        listDictProcessesRem.push(newDictProcesses);
+                    } else {
+                        dictProcesses.kp_i = '';
+                        dictProcesses.kp_name = '';
+                        dictProcesses.kp_code = '';
+                        dictProcesses.kp_owner = '';
+                        listDictProcessesRem.push(dictProcesses);
+                    }
+                    prevCP = codeCP;
+                }
+            }
+
+            const countProcess = uniqueProcessRem.size;
+            let strCountProcess;
+            const lastDigit = String(countProcess).slice(-1);
+            if (lastDigit === '1' && countProcess !== 11) {
+                strCountProcess = `${countProcess} централизованный процесс`;
+            } else if (['2', '3', '4'].includes(lastDigit) && ![12, 13, 14].includes(countProcess)) {
+                strCountProcess = `${countProcess} централизованных процесса`;
+            } else {
+                strCountProcess = `${countProcess} централизованных процессов`;
+            }
+            countRemoveProcessesClientPath = strCountProcess;
+        }
+
+        // Словари для генерации таблицы с доступами
+        let listDictAutomatedSystems = [];
+        if (this.listAutomatedSystemsAudit) {
+            let i = 0;
+            for (const AS of this.listAutomatedSystemsAudit) {
+                i++;
+                let first = true;
+                const emps = AS[AS.length - 1].slice(1, -1).split(',');
+                const rowsAS = this.filterDF(this.dfAutomatedSystems, 'as_index', Math.abs(parseInt(AS[0])));
+
+                for (const emp of emps) {
+                    const dictAutomatedSystems = {};
+                    if (!first) {
+                        dictAutomatedSystems.i = '';
+                        dictAutomatedSystems.name = '';
+                        dictAutomatedSystems.ke = '';
+                        dictAutomatedSystems.roles = '';
+                        dictAutomatedSystems.kp = '';
+                        dictAutomatedSystems.proc = '';
+                    } else {
+                        dictAutomatedSystems.i = String(i);
+                        dictAutomatedSystems.name = rowsAS[0]['title'];
+                        dictAutomatedSystems.ke = `${rowsAS[0]['affected_item']}\r\n${rowsAS[0]['logical_name']}`;
+                        dictAutomatedSystems.kp = AS[AS.length - 2];
+                        dictAutomatedSystems.proc = AS[AS.length - 3];
+
+                        if (parseInt(AS[0]) < 0) {
+                            dictAutomatedSystems.name += ' (+реплика)';
+                        }
+
+                        if (AS[1] === '-1') {
+                            dictAutomatedSystems.roles = 'Роль, позволяющая просматривать необходимую информацию в рамках проверки.';
+                        } else {
+                            const roleIndices = AS.slice(1, AS.length - 3);
+                            dictAutomatedSystems.roles = roleIndices
+                                .map(role_index => {
+                                    const roleRow = this.filterDF(rowsAS, 'role_index', parseInt(role_index))[0];
+                                    return roleRow ? roleRow['name'] : '';
+                                })
+                                .join('\r\n');
+                        }
+                    }
+
+                    if (emp === '-1') {
+                        dictAutomatedSystems.emp_name = 'Все участники (Приложение 1)';
+                    } else {
+                        const [emp_tn_fio, emp_title, emp_tb] = emp.split('^');
+                        const emp_fio = this.removeBrackets(emp_tn_fio);
+                        const emp_tn = emp_tn_fio.substring(emp_tn_fio.indexOf('(') + 1, emp_tn_fio.lastIndexOf(')'));
+
+                        dictAutomatedSystems.emp_name = emp_fio;
+                        dictAutomatedSystems.title = this.getFullTitle(emp_title, emp_tb);
+                        dictAutomatedSystems.tn = emp_tn;
+                    }
+
+                    first = false;
+                    listDictAutomatedSystems.push(dictAutomatedSystems);
+                }
+            }
+        }
+
+        // Форматирование дат
+        const formatDate = (dateStr) => {
+            if (!dateStr || !dateStr.includes('/')) return '';
+            const parts = dateStr.split('/');
+            return `${parts[1].padStart(2, '0')}.${parts[0].padStart(2, '0')}.${parts[2]}`;
+        };
+
+        const startDateFull = formatDate(this.dateOldEndAudit);
+        const endDateFull = formatDate(this.dateNewEndAudit);
+        const dateActFull = formatDate(this.dateAct);
+
+        // Подписант
+        let signatoryFIO, signatoryPost;
+        if (!this.flagIsTB) {
+            signatoryFIO = this.shortFio(this.dataSignatory[0]);
+            signatoryPost = this.dataSignatory[1]
+                .replace('зам.дир.', 'заместитель директора ')
+                .replace('дир.управл.', 'директор управления')
+                .replace('управления', 'Управления внутреннего аудита');
+        } else {
+            signatoryFIO = this.shortFio(this.dataSignatory[0]);
+            const fullNameTB = this.dictNameTB[this.nameTB][1];
+            signatoryPost = this.dataSignatory[1]
+                .replace('управления', 'Управления внутреннего аудита') + ' по ' + fullNameTB;
+        }
+
+        // Причина
+        const stringReason = this.textReason 
+            ? `В связи с необходимостью ${this.textReason} внести`
+            : 'Внести';
+
+        // Определение ca_tb
+        let ca_tb = "Территориальный банк";
+        if (listDictEmployees.length > 0) {
+            for (const dict_emp of listDictEmployees) {
+                if (dict_emp.tb.includes('Центральный аппарат')) {
+                    ca_tb = "Центральный аппарат/Территориальный банк";
+                    break;
+                }
+            }
+        }
+
+        // Подготовка словаря для рендеринга
+        const dictOrder = {
+            name: this.nameAudit.trim(),
+            pv_title: `${this.listWordForms[0]} ${this.nameAudit.trim()}`,
+            pv_num: this.numberOrderAudit,
+            reason: stringReason,
+            pv5: this.listWordForms[5],
+            pv8: this.listWordForms[8],
+            pv11: this.listWordForms[11],
+            pv_ases: this.listWordForms[7],
+            pv_date: startDateFull,
+            end_date: endDateFull,
+            act_date: dateActFull,
+            dir: empExecutionControl,
+            podpis_title: signatoryPost,
+            podpis_fio: signatoryFIO,
+            pril_emp: 1,
+            pril_add: 2,
+            pril_rem: 3,
+            pril_aski: 4
+        };
+
+        if (this.flagIsTB) {
+            dictOrder.TB_full_name = this.dictNameTB[this.nameTB][0].toUpperCase();
+            dictOrder.TB_full_name2 = 'ПО ' + this.dictNameTB[this.nameTB][1].toUpperCase();
+        }
+
+        if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
+            dictOrder.employees = listDictEmployees;
+            dictOrder.ca_tb = ca_tb;
+        } else {
+            dictOrder.pril_add = 1;
+        }
+
+        if (this.newListProcessesAudit) {
+            dictOrder.kps_and_ps_count_add = countProcessClientPathAdd;
+            dictOrder.processesAdded = listDictProcessesAdd;
+        } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
+            dictOrder.pril_rem = 2;
+        } else {
+            dictOrder.pril_rem = 1;
+        }
+
+        if (this.deleteListProcessesAudit) {
+            dictOrder.kps_and_ps_count_rem = countRemoveProcessesClientPath;
+            dictOrder.processesRemoved = listDictProcessesRem;
+        } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
+            dictOrder.pril_aski = 3;
+        } else if (this.newListProcessesAudit) {
+            dictOrder.pril_aski = 2;
+        } else {
+            dictOrder.pril_aski = 1;
+        }
+
+        if (this.listAutomatedSystemsAudit) {
+            dictOrder.aski = listDictAutomatedSystems;
+        }
+
+        // Загрузка и рендеринг шаблона
+        await this.renderTemplate(dictOrder, this.nameTemplate, this.pathTaskFolder);
+    }
+
+    /**
+     * Рендеринг шаблона и сохранение документа
+     */
+    async renderTemplate(dictOrder, templatePath, taskName) {
         try {
-            const response = await fetch("templates/tpl.docx");
+            const response = await fetch(templatePath);
             const arrayBuffer = await response.arrayBuffer();
 
             const zip = new PizZip(arrayBuffer);
@@ -33,27 +1154,202 @@ export default class DocxGenerator {
                 paragraphLoop: true,
                 linebreaks: true,
             });
-            console.log(dict)
-            doc.render(
-                dict
-            );
 
-            saveAs(doc.toBlob(), "output.docx");
+            doc.render(dictOrder);
+
+            const blob = doc.toBlob();
+            const fileName = `Распоряжение_${taskName}.docx`;
+            
+            saveAs(blob, fileName);
+            console.log(`Документ сохранен: ${fileName}`);
         } catch (error) {
-            console.error(error);
+            console.error('Ошибка генерации документа:', error);
             alert('Ошибка загрузки шаблона');
         }
     }
 
-    prepareDocument() {
-        const dict = {};
-        this.flagIsTB = this.config.SettingsOrder.levelOrder === 'CA' ? false : true;
-        dict.flagIsTB = this.flagIsTB;
-        if (this.flagIsTB) {
-            Object.assign(dict, { nameTB: this.config.SettingsOrder.selectedTB.toUpperCase(), nameTB2: 'ПО ' + this.tbList[this.config.SettingsOrder.selectedTB].toUpperCase() });
-        };
-        dict.pv_title = this.listWordForms[0];
-        this.generateDocument(dict)
+    /**
+     * Сокращение ФИО
+     */
+    shortFio(fio, gent = false, accus = false) {
+        const splited = fio.split(' ');
+        let surname;
+        
+        if (splited.length === 2) {
+            if (gent) {
+                surname = this.fioToGent(splited[0], '');
+            } else if (accus) {
+                surname = this.fioToAccus(splited[0], '');
+            } else {
+                surname = splited[0];
+            }
+            return `${splited[1][0]}. ${surname}`;
+        } else {
+            if (gent) {
+                surname = this.fioToGent(splited[0], splited[2]);
+            } else if (accus) {
+                surname = this.fioToAccus(splited[0], splited[2]);
+            } else {
+                surname = splited[0];
+            }
+            return `${splited[1][0]}.${splited[2][0]}. ${surname}`;
+        }
     }
 
+    /**
+     * Удаление текста в скобках
+     */
+    removeBrackets(string) {
+        const lastIndex = string.lastIndexOf('(');
+        return lastIndex >= 0 ? string.substring(0, lastIndex).trim() : string;
+    }
+
+    /**
+     * Получение полного названия должности
+     */
+    getFullTitle(title, uprav, abbr = true, tb = true, gent = false) {
+        let fullTitle = this.deabbrTitle(title);
+        if (gent) {
+            fullTitle = this.titleToGent(fullTitle);
+        }
+        if (abbr) {
+            fullTitle += ' УВА';
+        } else {
+            fullTitle += ' Управления внутреннего аудита (далее – УВА)';
+        }
+
+        if (tb && uprav && uprav.includes('ТБ')) {
+            fullTitle += ' по ' + this.dictNameTB[uprav][1];
+        }
+        return fullTitle;
+    }
+
+    /**
+     * Склонение фамилии в родительный падеж
+     */
+    fioToGent(surname, patron) {
+        if (['е', 'ё', 'и', 'о', 'у', 'ы', 'э', 'ю'].includes(surname.slice(-1)) || 
+            ['ых', 'их'].includes(surname.slice(-2))) {
+            return surname;
+        }
+        if (surname.endsWith('ая')) {
+            return surname.slice(0, -2) + 'ой';
+        }
+        if (surname.endsWith('а')) {
+            if (['в', 'н'].includes(surname.slice(-2, -1))) {
+                return surname.slice(0, -1) + 'ой';
+            }
+            if (['т', 'д', 'з'].includes(surname.slice(-2, -1))) {
+                return surname.slice(0, -1) + 'ы';
+            }
+            return surname.slice(0, -1) + 'и';
+        }
+        if (surname.endsWith('ия')) {
+            return surname.slice(0, -2) + 'ии';
+        }
+        if (surname.endsWith('я')) {
+            return surname.slice(0, -1) + 'и';
+        }
+        if (surname.endsWith('ий')) {
+            return surname.slice(0, -2) + 'ого';
+        }
+        if (!this.isFemale(patron)) {
+            if (!['й', 'ц', 'ь'].includes(surname.slice(-1))) {
+                return surname + 'а';
+            }
+        }
+        return surname;
+    }
+
+    /**
+     * Склонение фамилии в винительный падеж
+     */
+    fioToAccus(surname, patron) {
+        if (['е', 'ё', 'и', 'о', 'у', 'ы', 'э', 'ю'].includes(surname.slice(-1)) || 
+            ['ых', 'их'].includes(surname.slice(-2))) {
+            return surname;
+        }
+        if (surname.endsWith('ая')) {
+            return surname.slice(0, -2) + 'ую';
+        }
+        if (surname.endsWith('а')) {
+            return surname.slice(0, -1) + 'у';
+        }
+        if (surname.endsWith('ия')) {
+            return surname.slice(0, -2) + 'ии';
+        }
+        if (surname.endsWith('я')) {
+            return surname.slice(0, -1) + 'ю';
+        }
+        if (!this.isFemale(patron)) {
+            if (surname.endsWith('ий')) {
+                return surname.slice(0, -2) + 'ого';
+            }
+            if (!['й', 'ц', 'ь'].includes(surname.slice(-1))) {
+                return surname + 'а';
+            }
+        }
+        return surname;
+    }
+
+    /**
+     * Проверка женского рода по отчеству
+     */
+    isFemale(patron) {
+        if (!patron) return true;
+        return patron.endsWith('на');
+    }
+
+    /**
+     * Расшифровка сокращений в должностях
+     */
+    deabbrTitle(title) {
+        return title
+            .replace(/Ведущ\./g, 'Ведущий ')
+            .replace(/ведущ\./g, 'ведущий ')
+            .replace(/спец\./g, 'специалист ')
+            .replace(/данн\./g, 'данных')
+            .replace(/цифр\.техн-м/g, 'цифровым технологиям')
+            .replace(/рук-ль/g, 'руководитель')
+            .replace(/зам\.дир\./g, 'заместитель директора ')
+            .replace(/дир\./g, 'директор ')
+            .replace(/управл\./g, 'управления')
+            .replace(/исслед\./g, 'исследованию ');
+    }
+
+    /**
+     * Склонение должности в родительный падеж
+     */
+    titleToGent(title) {
+        const gentWords = {
+            'аудитор': 'аудитора',
+            'аналитик': 'аналитика',
+            'специалист': 'специалиста',
+            'эксперт': 'эксперта',
+            'инженер': 'инженера',
+            'директор': 'директора',
+            'менеджер': 'менеджера',
+            'начальник': 'начальника',
+            'исследователь': 'исследователя',
+            'руководитель': 'руководителя',
+            'заместитель': 'заместителя',
+            'старший': 'старшего',
+            'управляющий': 'управляющего',
+            'ведущий': 'ведущего',
+            'младший': 'младшего',
+            'главный': 'главного',
+            'исполнительный': 'исполнительного'
+        };
+
+        return title.split(' ').map(words => {
+            const tokens = words.split('-').map(word => {
+                const lowerWord = word.toLowerCase();
+                if (gentWords[lowerWord]) {
+                    return gentWords[lowerWord];
+                }
+                return word;
+            });
+            return tokens.join('-');
+        }).join(' ');
+    }
 }

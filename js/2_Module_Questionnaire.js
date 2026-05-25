@@ -33,18 +33,18 @@ export default class Module2 {
     updateScenario(module1Config) {
         if (!module1Config) return;
 
-        const orderType = module1Config.orderType;
-        const modificationType = module1Config.modificationType;
+        const auditType = module1Config.auditType;
+        const orderType = module1Config.orderType || module1Config.modificationType;
 
         let scenario = null;
 
-        if (orderType === 'preparation' && modificationType === 'new') {
+        if (auditType === 'preparation' && orderType === 'new') {
             scenario = 'preparation_new';
-        } else if (orderType === 'execution' && modificationType === 'new') {
+        } else if (auditType === 'execution' && orderType === 'new') {
             scenario = 'execution_new';
-        } else if (orderType === 'preparation' && modificationType === 'change') {
+        } else if (auditType === 'preparation' && orderType === 'change') {
             scenario = 'preparation_change';
-        } else if (orderType === 'execution' && modificationType === 'change') {
+        } else if (auditType === 'execution' && orderType === 'change') {
             scenario = 'execution_change';
         }
 

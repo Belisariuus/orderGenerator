@@ -177,6 +177,7 @@ export default class Module1 {
         const configData = {
             auditType: auditType,
             orderType: orderType,
+            modificationType: orderType, // Добавляем для совместимости с другими модулями
             levelOrder: levelOrder,
             selectedTB: selectedTB
         };

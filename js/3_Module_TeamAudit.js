@@ -100,7 +100,7 @@ export default class Module3 {
     updateScenario(module1Config, fullConfig) {
         if (!module1Config) return;
 
-        const modificationType = module1Config.modificationType;
+        const orderType = module1Config.orderType || module1Config.modificationType;
         const levelOrder = module1Config.levelOrder;
 
         if (levelOrder === 'TB' && module1Config.selectedTB) {
@@ -114,11 +114,11 @@ export default class Module3 {
 
         let scenario = null;
 
-        if (modificationType === 'new') {
+        if (orderType === 'new') {
             scenario = 'new';
-        } else if (modificationType === 'change' && this.changeTeamFlag) {
+        } else if (orderType === 'change' && this.changeTeamFlag) {
             scenario = 'change';
-        } else if (modificationType === 'change' && !this.changeTeamFlag) {
+        } else if (orderType === 'change' && !this.changeTeamFlag) {
             scenario = 'no_change_needed';
         }
 

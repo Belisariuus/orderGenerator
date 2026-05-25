@@ -113,7 +113,7 @@ export default class Module4 {
     updateScenario(module1Config, fullConfig) {
         if (!module1Config) return;
 
-        const modificationType = module1Config.modificationType;
+        const orderType = module1Config.orderType || module1Config.modificationType;
         const questionnaireConfig = fullConfig?.Questionnaire || {};
 
         this.needProcessesFlag = questionnaireConfig.needProcesses || false;
@@ -121,12 +121,12 @@ export default class Module4 {
 
         let scenario = null;
 
-        if (modificationType === 'new' && this.needProcessesFlag) {
+        if (orderType === 'new' && this.needProcessesFlag) {
             scenario = 'new';
-        } else if (modificationType === 'change' && this.changeProcessesFlag) {
+        } else if (orderType === 'change' && this.changeProcessesFlag) {
             scenario = 'change';
-        } else if ((modificationType === 'new' && !this.needProcessesFlag) ||
-                   (modificationType === 'change' && !this.changeProcessesFlag)) {
+        } else if ((orderType === 'new' && !this.needProcessesFlag) ||
+                   (orderType === 'change' && !this.changeProcessesFlag)) {
             scenario = 'not_needed';
         }
 
