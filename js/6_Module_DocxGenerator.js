@@ -695,8 +695,14 @@ export default class DocxGenerator {
                         dictAutomatedSystems.proc = '';
                     } else {
                         dictAutomatedSystems.i = String(i);
-                        dictAutomatedSystems.name = rowsAS[0]['title'];
-                        dictAutomatedSystems.ke = `${rowsAS[0]['affected_item']}\r\n${rowsAS[0]['logical_name']}`;
+                        // Получаем данные о системе из systemData (вместо Excel)
+                        const sysName = systemData ? systemData.name : `Система ${systemId}`;
+                        const sysDesc = systemData && systemData.description 
+                            ? systemData.description
+                            : 'Автоматизированная система';
+                        
+                        dictAutomatedSystems.name = sysName;
+                        dictAutomatedSystems.ke = `${sysDesc}\r\nAS${systemId}`;
                         dictAutomatedSystems.kp = AS[AS.length - 2];
                         dictAutomatedSystems.proc = AS[AS.length - 3];
 
@@ -1103,8 +1109,14 @@ export default class DocxGenerator {
                         dictAutomatedSystems.proc = '';
                     } else {
                         dictAutomatedSystems.i = String(i);
-                        dictAutomatedSystems.name = rowsAS[0]['title'];
-                        dictAutomatedSystems.ke = `${rowsAS[0]['affected_item']}\r\n${rowsAS[0]['logical_name']}`;
+                        // Получаем данные о системе из systemData (вместо Excel)
+                        const sysName2 = systemData ? systemData.name : `Система ${systemId}`;
+                        const sysDesc2 = systemData && systemData.description 
+                            ? systemData.description
+                            : 'Автоматизированная система';
+                        
+                        dictAutomatedSystems.name = sysName2;
+                        dictAutomatedSystems.ke = `${sysDesc2}\r\nAS${systemId}`;
                         dictAutomatedSystems.kp = AS[AS.length - 2];
                         dictAutomatedSystems.proc = AS[AS.length - 3];
 
