@@ -87,9 +87,10 @@ export default class DocxGenerator {
             'реализацию проверки'
         ];
 
-        // Данные из Excel файлов (будут загружены при необходимости)
-        this.dfAutomatedSystems = null;
-        this.dfProcessesClientPath = null;
+        // Справочные данные из JSON файлов
+        this.processesData = null;
+        this.systemsData = null;
+        this.employeesData = null;
     }
 
     /**
@@ -328,45 +329,95 @@ export default class DocxGenerator {
     }
 
     /**
-     * Загружает Excel файлы с данными
+     * Загружает справочные данные из JSON файлов
      */
-    async loadExcelData() {
-        if (!this.dfAutomatedSystems) {
-            const responseAS = await fetch("xlsxs/indexed_ases.xlsx");
-            const arrayBufferAS = await responseAS.arrayBuffer();
-            this.dfAutomatedSystems = this.parseExcelToDF(arrayBufferAS);
+    async loadReferenceData() {
+        // Загружаем процессы и клиентские пути
+        if (!this.processesData) {
+            try {
+                const response = await fetch('./data/processes.json');
+                if (!response.ok) throw new Error('JSON файл процессов не найден');
+                this.processesData = await response.json();
+                console.log('Загружены процессы и КП для генерации:', this.processesData);
+            } catch (error) {
+                console.error('Ошибка загрузки processes.json:', error);
+                // Fallback данные
+                this.processesData = {
+                    processes: [
+                        { code: "П01", name: "Процесс 1", ownerDepartment: "Отдел 1", linkedKP: ["КП01"] },
+                        { code: "П02", name: "Процесс 2", ownerDepartment: "Отдел 2", linkedKP: ["КП02"] }
+                    ],
+                    clientPaths: [
+                        { code: "КП01", name: "Клиентский путь 1", ownerDepartment: "Отдел 1", linkedProcesses: ["П01"] },
+                        { code: "КП02", name: "Клиентский путь 2", ownerDepartment: "Отдел 2", linkedProcesses: ["П02"] }
+                    ]
+                };
+            }
         }
 
-        if (!this.dfProcessesClientPath) {
-            const responsePC = await fetch("xlsxs/all_procs.xlsx");
-            const arrayBufferPC = await responsePC.arrayBuffer();
-            this.dfProcessesClientPath = this.parseExcelToDF(arrayBufferPC);
+        // Загружаем системы
+        if (!this.systemsData) {
+            try {
+                const response = await fetch('./data/systems.json');
+                if (!response.ok) throw new Error('JSON файл систем не найден');
+                this.systemsData = await response.json();
+                console.log('Загружены системы для генерации:', this.systemsData);
+            } catch (error) {
+                console.error('Ошибка загрузки systems.json:', error);
+                // Fallback данные
+                this.systemsData = {
+                    systems: [
+                        { id: "AS1", name: "Система А", roles: ["Роль1", "Роль2"] },
+                        { id: "AS2", name: "Система Б", roles: ["Роль3", "Роль4"] }
+                    ]
+                };
+            }
+        }
+
+        // Загружаем сотрудников
+        if (!this.employeesData) {
+            try {
+                const response = await fetch('./data/employees.json');
+                if (!response.ok) throw new Error('JSON файл сотрудников не найден');
+                this.employeesData = await response.json();
+                console.log('Загружены сотрудники для генерации:', this.employeesData.length);
+            } catch (error) {
+                console.error('Ошибка загрузки employees.json:', error);
+                this.employeesData = [];
+            }
         }
     }
 
     /**
-     * Парсит Excel файл в структуру данных (аналог pandas DataFrame)
+     * Получает процесс по коду из загруженных данных
      */
-    parseExcelToDF(arrayBuffer) {
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        return jsonData;
+    getProcessByCode(code) {
+        if (!this.processesData || !code) return null;
+        return this.processesData.processes.find(p => p.code === code || p.code === 'П' + code);
     }
 
     /**
-     * Фильтрует данные по колонке (аналог pandas фильтрации)
+     * Получает клиентский путь по коду из загруженных данных
      */
-    filterDF(df, columnName, value) {
-        return df.filter(row => row[columnName] === value);
+    getClientPathByCode(code) {
+        if (!this.processesData || !code) return null;
+        return this.processesData.clientPaths.find(kp => kp.code === code || kp.code === 'КП' + code);
+    }
+
+    /**
+     * Получает систему по ID из загруженных данных
+     */
+    getSystemById(id) {
+        if (!this.systemsData || !id) return null;
+        return this.systemsData.systems.find(s => s.id === `AS${id}` || s.id === String(id));
     }
 
     /**
      * Основная функция генерации документа
      */
     async generateDocument(dictAttributesJson, pathTaskFolder) {
-        await this.loadExcelData();
+        // Загружаем справочные данные из JSON (вместо Excel)
+        await this.loadReferenceData();
 
         this.dictAttributesJson = dictAttributesJson;
         this.pathTaskFolder = pathTaskFolder;
@@ -564,11 +615,14 @@ export default class DocxGenerator {
 
             let prevCP = 0;
             for (const row of listPairsProcessesClientPath) {
-                const rowProcess = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const processCode = 'П' + row[0];
+                const rowProcess = this.getProcessByCode(processCode);
+                if (!rowProcess) continue;
+                
                 const dictProcess = {
-                    p_name: rowProcess['Наименование процесса'],
-                    p_code: rowProcess['Код процесса'],
-                    p_owner: rowProcess['Подразделение - владелец процесса'],
+                    p_name: rowProcess.name,
+                    p_code: rowProcess.code,
+                    p_owner: rowProcess.ownerDepartment,
                     p_i: String(i_P++)
                 };
                 uniqueProcess.add(dictProcess.p_code);
@@ -583,12 +637,15 @@ export default class DocxGenerator {
                 } else {
                     const codeCP = row[1];
                     if (prevCP !== codeCP) {
-                        const rowClientPath = this.filterDF(rowProcess, 'Код КП', 'КП' + codeCP)[0];
+                        const kpCode = 'КП' + codeCP;
+                        const rowClientPath = this.getClientPathByCode(kpCode);
+                        if (!rowClientPath) continue;
+                        
                         const newDictProcess = { ...dictProcess };
                         newDictProcess.kp_i = String(i_CP++);
-                        newDictProcess.kp_name = rowClientPath['Наименование КП'];
-                        newDictProcess.kp_code = 'КП' + codeCP;
-                        newDictProcess.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        newDictProcess.kp_name = rowClientPath.name;
+                        newDictProcess.kp_code = kpCode;
+                        newDictProcess.kp_owner = rowClientPath.ownerDepartment;
                         uniqueClientPath.add(newDictProcess.kp_code);
                         listDictProcesses.push(newDictProcess);
                     } else {
@@ -624,7 +681,8 @@ export default class DocxGenerator {
                 i++;
                 let first = true;
                 const emp_tns = AS[AS.length - 1].slice(1, -1).split(',');
-                const rowsAS = this.filterDF(this.dfAutomatedSystems, 'as_index', Math.abs(parseInt(AS[0])));
+                const systemId = Math.abs(parseInt(AS[0]));
+                const systemData = this.getSystemById(systemId);
 
                 for (const emp_tn of emp_tns) {
                     const dictAutomatedSystems = {};
@@ -652,7 +710,8 @@ export default class DocxGenerator {
                             const roleIndices = AS.slice(1, AS.length - 3);
                             dictAutomatedSystems.roles = roleIndices
                                 .map(role_index => {
-                                    const roleRow = this.filterDF(rowsAS, 'role_index', parseInt(role_index))[0];
+                                    const roleIndexNum = parseInt(role_index);
+                                    const roleRow = systemData && systemData.roles && systemData.roles[roleIndexNum - 1] ? {name: systemData.roles[roleIndexNum - 1]} : null;
                                     return roleRow ? roleRow['name'] : '';
                                 })
                                 .join('\r\n');
@@ -886,11 +945,14 @@ export default class DocxGenerator {
 
             let prevCP = 0;
             for (const row of listPairsProcessesClientPath) {
-                const rowProcess = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const processCode = 'П' + row[0];
+                const rowProcess = this.getProcessByCode(processCode);
+                if (!rowProcess) continue;
+                
                 const dictProcess = {
-                    p_name: rowProcess['Наименование процесса'],
-                    p_code: rowProcess['Код процесса'],
-                    p_owner: rowProcess['Подразделение - владелец процесса'],
+                    p_name: rowProcess.name,
+                    p_code: rowProcess.code,
+                    p_owner: rowProcess.ownerDepartment,
                     p_i: String(i_P_Add++)
                 };
                 uniqueProcessAdd.add(dictProcess.p_code);
@@ -904,12 +966,15 @@ export default class DocxGenerator {
                 } else {
                     const codeCP = row[1];
                     if (prevCP !== codeCP) {
-                        const rowClientPath = this.filterDF(rowProcess, 'Код КП', 'КП' + codeCP)[0];
+                        const kpCode = 'КП' + codeCP;
+                        const rowClientPath = this.getClientPathByCode(kpCode);
+                        if (!rowClientPath) continue;
+                        
                         const newDictProcess = { ...dictProcess };
                         newDictProcess.kp_i = String(i_CP_Add++);
-                        newDictProcess.kp_name = rowClientPath['Наименование КП'];
-                        newDictProcess.kp_code = 'КП' + codeCP;
-                        newDictProcess.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        newDictProcess.kp_name = rowClientPath.name;
+                        newDictProcess.kp_code = kpCode;
+                        newDictProcess.kp_owner = rowClientPath.ownerDepartment;
                         uniqueClientPathAdd.add(newDictProcess.kp_code);
                         listDictProcessesAdd.push(newDictProcess);
                     } else {
@@ -960,11 +1025,14 @@ export default class DocxGenerator {
 
             let prevCP = 0;
             for (const row of listProcessClientPathPairs) {
-                const rowProcesses = this.filterDF(this.dfProcessesClientPath, 'Код процесса', 'П' + row[0])[0];
+                const processCode = 'П' + row[0];
+                const rowProcesses = this.getProcessByCode(processCode);
+                if (!rowProcesses) continue;
+                
                 const dictProcesses = {
-                    p_name: rowProcesses['Наименование процесса'],
-                    p_code: rowProcesses['Код процесса'],
-                    p_owner: rowProcesses['Подразделение - владелец процесса'],
+                    p_name: rowProcesses.name,
+                    p_code: rowProcesses.code,
+                    p_owner: rowProcesses.ownerDepartment,
                     p_i: String(i_P_Rem++)
                 };
                 uniqueProcessRem.add(dictProcesses.p_code);
@@ -978,12 +1046,15 @@ export default class DocxGenerator {
                 } else {
                     const codeCP = row[1];
                     if (prevCP !== codeCP) {
-                        const rowClientPath = this.filterDF(rowProcesses, 'Код КП', 'КП' + codeCP)[0];
+                        const kpCode = 'КП' + codeCP;
+                        const rowClientPath = this.getClientPathByCode(kpCode);
+                        if (!rowClientPath) continue;
+                        
                         const newDictProcesses = { ...dictProcesses };
                         newDictProcesses.kp_i = String(i_CP_Rem++);
-                        newDictProcesses.kp_name = rowClientPath['Наименование КП'];
-                        newDictProcesses.kp_code = 'КП' + codeCP;
-                        newDictProcesses.kp_owner = rowClientPath['Подразделение - владелец КП'];
+                        newDictProcesses.kp_name = rowClientPath.name;
+                        newDictProcesses.kp_code = kpCode;
+                        newDictProcesses.kp_owner = rowClientPath.ownerDepartment;
                         uniqueClientPathRem.add(newDictProcesses.kp_code);
                         listDictProcessesRem.push(newDictProcesses);
                     } else {
@@ -1018,7 +1089,8 @@ export default class DocxGenerator {
                 i++;
                 let first = true;
                 const emps = AS[AS.length - 1].slice(1, -1).split(',');
-                const rowsAS = this.filterDF(this.dfAutomatedSystems, 'as_index', Math.abs(parseInt(AS[0])));
+                const systemId = Math.abs(parseInt(AS[0]));
+                const systemData = this.getSystemById(systemId);
 
                 for (const emp of emps) {
                     const dictAutomatedSystems = {};
@@ -1046,7 +1118,8 @@ export default class DocxGenerator {
                             const roleIndices = AS.slice(1, AS.length - 3);
                             dictAutomatedSystems.roles = roleIndices
                                 .map(role_index => {
-                                    const roleRow = this.filterDF(rowsAS, 'role_index', parseInt(role_index))[0];
+                                    const roleIndexNum = parseInt(role_index);
+                                    const roleRow = systemData && systemData.roles && systemData.roles[roleIndexNum - 1] ? {name: systemData.roles[roleIndexNum - 1]} : null;
                                     return roleRow ? roleRow['name'] : '';
                                 })
                                 .join('\r\n');
