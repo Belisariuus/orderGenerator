@@ -818,7 +818,7 @@ export default class DocxGenerator {
             pv10: this.listWordForms[10],
             pv_emp: this.listWordForms[6],
             pv_ases: this.listWordForms[7],
-            podpunkt: this.pointAudit,
+            podpunkt: this.pointAudit ? `п.${this.pointAudit}` : '',
             start_date: startDateFull,
             end_date: endDateFull,
             act_date: dateActFull,
@@ -1317,7 +1317,6 @@ export default class DocxGenerator {
                 paragraphLoop: true,
                 linebreaks: true,
                 nullGetter: () => '', // Пустые значения не вызывают ошибок
-                fileType: 'docx' // Явно указываем тип файла
             });
 
             // Рендерим документ с данными
