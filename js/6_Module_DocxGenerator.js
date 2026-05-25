@@ -653,6 +653,11 @@ export default class DocxGenerator {
                         dictProcess.kp_name = '';
                         dictProcess.kp_code = '';
                         dictProcess.kp_owner = '';
+                        // Флаги для объединения ячеек КП
+                        dictProcess.kp_i_empty = true;
+                        dictProcess.kp_name_empty = true;
+                        dictProcess.kp_code_empty = true;
+                        dictProcess.kp_owner_empty = true;
                         listDictProcesses.push(dictProcess);
                     }
                     prevCP = codeCP;
@@ -726,12 +731,29 @@ export default class DocxGenerator {
 
                     if (emp_tn === '-1') {
                         dictAutomatedSystems.emp_name = 'Все участники (Приложение 1)';
+                        dictAutomatedSystems.title = '';
+                        dictAutomatedSystems.tn = '';
+                        // Флаги для объединения ячеек сотрудника
+                        dictAutomatedSystems.emp_name_empty = true;
+                        dictAutomatedSystems.title_empty = true;
+                        dictAutomatedSystems.tn_empty = true;
                     } else {
                         const cur_emp = listDictEmployees.find(e => e.tn === emp_tn);
                         if (cur_emp) {
                             dictAutomatedSystems.emp_name = cur_emp.fio;
                             dictAutomatedSystems.title = this.getFullTitle(cur_emp.title, cur_emp.tb);
                             dictAutomatedSystems.tn = cur_emp.tn;
+                            // Флаги для объединения ячеек сотрудника
+                            dictAutomatedSystems.emp_name_empty = false;
+                            dictAutomatedSystems.title_empty = false;
+                            dictAutomatedSystems.tn_empty = false;
+                        } else {
+                            dictAutomatedSystems.emp_name = '';
+                            dictAutomatedSystems.title = '';
+                            dictAutomatedSystems.tn = '';
+                            dictAutomatedSystems.emp_name_empty = true;
+                            dictAutomatedSystems.title_empty = true;
+                            dictAutomatedSystems.tn_empty = true;
                         }
                     }
 
@@ -1235,6 +1257,12 @@ export default class DocxGenerator {
 
                     if (emp === '-1') {
                         dictAutomatedSystems.emp_name = 'Все участники (Приложение 1)';
+                        dictAutomatedSystems.title = '';
+                        dictAutomatedSystems.tn = '';
+                        // Флаги для объединения ячеек сотрудника
+                        dictAutomatedSystems.emp_name_empty = true;
+                        dictAutomatedSystems.title_empty = true;
+                        dictAutomatedSystems.tn_empty = true;
                     } else {
                         const [emp_tn_fio, emp_title, emp_tb] = emp.split('^');
                         const emp_fio = this.removeBrackets(emp_tn_fio);
@@ -1243,6 +1271,10 @@ export default class DocxGenerator {
                         dictAutomatedSystems.emp_name = emp_fio;
                         dictAutomatedSystems.title = this.getFullTitle(emp_title, emp_tb);
                         dictAutomatedSystems.tn = emp_tn;
+                        // Флаги для объединения ячеек сотрудника
+                        dictAutomatedSystems.emp_name_empty = false;
+                        dictAutomatedSystems.title_empty = false;
+                        dictAutomatedSystems.tn_empty = false;
                     }
 
                     first = false;
