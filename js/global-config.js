@@ -95,24 +95,94 @@ class ConfigManager {
     getFullConfigJSON() {
         return JSON.stringify(this.config, null, 2);
     }
+    // Сохранить конфигурацию в sessionStorage (локальная сессия)
+    saveToSessionStorage() {
+        sessionStorage.setItem('appConfig', JSON.stringify(this.config));
+        console.log('✓ Конфигурация сохранена в sessionStorage');
+        return true;
+    }
 
-//    // Сохранить конфигурацию в localStorage
-//    saveToLocalStorage() {
-//        localStorage.setItem('appConfig', JSON.stringify(this.config));
-//        console.log('Конфигурация сохранена в localStorage');
-//    }
-//    loadFromLocalStorage() {
-//        const saved = localStorage.getItem('appConfig');
-//        if (saved) {
-//            try {
-//                const loadedConfig = JSON.parse(saved);
-//                Object.assign(this.config, loadedConfig);
-//                return true;
-//            } catch (e) {
-//            }
-//        }
-//        return false;
-//    }
+    // Загрузить конфигурацию из sessionStorage
+    loadFromSessionStorage() {
+        const saved = sessionStorage.getItem('appConfig');
+        if (saved) {
+            try {
+                const loadedConfig = JSON.parse(saved);
+                // Полная замена конфигурации
+                this.config = { ...this.config, ...loadedConfig };
+                // Восстанавливаем статус сохранения для всех модулей
+                Object.keys(loadedConfig).forEach(moduleName => {
+                    if (moduleName !== 'Generator') {
+                        this.saveStatus.set(moduleName, true);
+                    }
+                });
+                // Уведомляем подписчиков
+                this.notifyListeners('SessionRestore', null, this.config);
+                console.log('✓ Конфигурация загружена из sessionStorage');
+                return true;
+            } catch (e) {
+                console.error('Ошибка загрузки из sessionStorage:', e);
+            }
+        }
+        return false;
+    }
+
+    // Экспорт конфигурации в JSON файл для скачивания
+    exportConfigToFile() {
+        const configJSON = JSON.stringify(this.config, null, 2);
+        const blob = new Blob([configJSON], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        a.download = `config_${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log('✓ Конфигурация экспортирована в файл');
+    }
+
+    // Импорт конфигурации из JSON файла
+    importConfigFromFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedConfig = JSON.parse(event.target.result);
+                    
+                    // Валидация структуры
+                    if (!importedConfig || typeof importedConfig !== 'object') {
+                        throw new Error('Неверный формат конфигурации');
+                    }
+
+                    // Полная замена конфигурации с сохранением структуры
+                    Object.keys(this.config).forEach(key => {
+                        if (importedConfig[key]) {
+                            this.config[key] = { ...importedConfig[key] };
+                        }
+                    });
+
+                    // Восстанавливаем статус сохранения для всех модулей
+                    Object.keys(importedConfig).forEach(moduleName => {
+                        if (moduleName !== 'Generator') {
+                            this.saveStatus.set(moduleName, true);
+                        }
+                    });
+
+                    // Уведомляем подписчиков
+                    this.notifyListeners('FileImport', null, this.config);
+                    console.log('✓ Конфигурация импортирована из файла');
+                    resolve(this.config);
+                } catch (e) {
+                    console.error('Ошибка импорта конфигурации:', e);
+                    reject(e);
+                }
+            };
+            reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+            reader.readAsText(file);
+        });
+    }
 
     // Экспорт всех данных для отправки на сервер
     exportForServer() {
