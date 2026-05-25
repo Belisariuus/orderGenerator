@@ -196,3 +196,11 @@ class ConfigManager {
 
 // Создаем глобальный экземпляр
 window.appConfigManager = new ConfigManager();
+
+// Проверка корректности создания экземпляра (для отладки)
+if (typeof window.appConfigManager.saveToSessionStorage !== 'function') {
+    console.error('❗ КРИТИЧЕСКАЯ ОШИБКА: метод saveToSessionStorage не найден в appConfigManager');
+    console.error('Доступные методы:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.appConfigManager)));
+} else {
+    console.log('✓ ConfigManager инициализирован корректно');
+}
