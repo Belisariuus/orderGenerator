@@ -95,6 +95,7 @@ export default class Module2 {
                     auditName: null,
                     orderDate: null,
                     orderNumber: null,
+                    oldEndDate: null,
                     newEndDate: null,
                     changeTeam: false,
                     changeAS: false,
@@ -106,6 +107,7 @@ export default class Module2 {
                     reason: null,
                     auditName: null,
                     orderNumber: null,
+                    oldEndDate: null,
                     newEndDate: null,
                     newActSendDate: null,
                     changeTeam: false,
@@ -152,6 +154,7 @@ export default class Module2 {
                 formData.reason = this.container.querySelector('#reason')?.value || null;
                 formData.auditName = this.container.querySelector('#auditName')?.value || null;
                 formData.orderNumber = this.container.querySelector('#orderNumber')?.value || null;
+                formData.oldEndDate = this.container.querySelector('#oldEndDate')?.value || null;
                 formData.newEndDate = this.container.querySelector('#newEndDate')?.value || null;
                 formData.changeTeam = this.container.querySelector('#changeTeam')?.checked || false;
                 formData.changeAS = this.container.querySelector('#changeAS')?.checked || false;
@@ -162,6 +165,7 @@ export default class Module2 {
                 formData.reason = this.container.querySelector('#reason')?.value || null;
                 formData.auditName = this.container.querySelector('#auditName')?.value || null;
                 formData.orderNumber = this.container.querySelector('#orderNumber')?.value || null;
+                formData.oldEndDate = this.container.querySelector('#oldEndDate')?.value || null;
                 formData.newEndDate = this.container.querySelector('#newEndDate')?.value || null;
                 formData.newActSendDate = this.container.querySelector('#newActSendDate')?.value || null;
                 formData.changeTeam = this.container.querySelector('#changeTeam')?.checked || false;
@@ -350,9 +354,15 @@ export default class Module2 {
                 <input type="text" id="orderNumber" placeholder="Введите номер распоряжения">
             </div>
 
-            <div class="form-group">
-                <label for="newEndDate">Новая дата окончания подготовки <span class="required">*</span></label>
-                <input type="date" id="newEndDate">
+            <div class="date-group">
+                <div class="form-group">
+                    <label for="oldEndDate">Старая дата окончания подготовки <span class="required">*</span></label>
+                    <input type="date" id="oldEndDate">
+                </div>
+                <div class="form-group">
+                    <label for="newEndDate">Новая дата окончания подготовки <span class="required">*</span></label>
+                    <input type="date" id="newEndDate">
+                </div>
             </div>
 
             <div class="checkbox-group">
@@ -395,6 +405,10 @@ export default class Module2 {
             </div>
 
             <div class="date-group">
+                <div class="form-group">
+                    <label for="oldEndDate">Старая дата окончания проверочных действий <span class="required">*</span></label>
+                    <input type="date" id="oldEndDate">
+                </div>
                 <div class="form-group">
                     <label for="newEndDate">Новая дата окончания проверочных действий <span class="required">*</span></label>
                     <input type="date" id="newEndDate">
