@@ -72,7 +72,7 @@ class ConfigManager {
 
     // Проверить, все ли модули сохранили данные
     isAllModulesSaved() {
-        const requiredModules = ['SettingsOrder', 'Questionnaire', 'TeamAudit', 'ProcessesModule', 'module5'];
+        const requiredModules = ['SettingsOrder', 'Questionnaire', 'TeamAudit', 'ProcessesModule', 'AutomatedSystems'];
         return requiredModules.every(module => this.saveStatus.get(module) === true);
     }
 

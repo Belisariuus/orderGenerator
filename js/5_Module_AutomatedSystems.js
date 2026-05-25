@@ -138,20 +138,20 @@ export default class Module5 {
     updateScenario(module1Config, fullConfig) {
         if (!module1Config) return;
 
-        const modificationType = module1Config.modificationType;
+        const orderType = module1Config.orderType || module1Config.modificationType;
         const questionnaireConfig = fullConfig?.Questionnaire || {};
 
-        this.needASFlag = modificationType === 'new' ? questionnaireConfig.needAS || false : false;
-        this.changeASFlag = modificationType === 'change' ? questionnaireConfig.changeAS || false : false;
+        this.needASFlag = orderType === 'new' ? questionnaireConfig.needAS || false : false;
+        this.changeASFlag = orderType === 'change' ? questionnaireConfig.changeAS || false : false;
 
         let scenario = null;
 
-        if (modificationType === 'new' && this.needASFlag) {
+        if (orderType === 'new' && this.needASFlag) {
             scenario = 'new';
-        } else if (modificationType === 'change' && this.changeASFlag) {
+        } else if (orderType === 'change' && this.changeASFlag) {
             scenario = 'change';
-        } else if ((modificationType === 'new' && !this.needASFlag) ||
-                   (modificationType === 'change' && !this.changeASFlag)) {
+        } else if ((orderType === 'new' && !this.needASFlag) ||
+                   (orderType === 'change' && !this.changeASFlag)) {
             scenario = 'not_needed';
         }
 
