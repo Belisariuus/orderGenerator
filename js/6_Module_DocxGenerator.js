@@ -838,17 +838,21 @@ export default class DocxGenerator {
         if (listDictEmployees && listDictEmployees.length > 0) {
             dictOrder.employees = listDictEmployees;
             dictOrder.showApp1 = true;
+            dictOrder.showLinkApp1 = true;
         } else {
             dictOrder.showApp1 = false;
+            dictOrder.showLinkApp1 = false;
         }
 
         if (this.listProcessesAudit && listDictProcesses && listDictProcesses.length > 0) {
             dictOrder.kps_and_ps_count = countProcessClientPath;
             dictOrder.processes = listDictProcesses;
             dictOrder.showApp2 = true;
+            dictOrder.showLinkApp2 = true;
         } else {
             dictOrder.pril_aski = 2; // Сдвигаем номер приложения
             dictOrder.showApp2 = false;
+            dictOrder.showLinkApp2 = false;
         }
 
         if (this.flagIsTB && listDictProcesses) {
@@ -860,8 +864,10 @@ export default class DocxGenerator {
         if (this.listAutomatedSystemsAudit && listDictAutomatedSystems && listDictAutomatedSystems.length > 0) {
             dictOrder.aski = listDictAutomatedSystems;
             dictOrder.showApp3 = true;
+            dictOrder.showLinkApp3 = true;
         } else {
             dictOrder.showApp3 = false;
+            dictOrder.showLinkApp3 = false;
         }
 
         // Загрузка и рендеринг шаблона
@@ -1242,43 +1248,54 @@ export default class DocxGenerator {
             dictOrder.employees = listDictEmployees;
             dictOrder.ca_tb = ca_tb;
             dictOrder.showApp1 = true;
+            dictOrder.showLinkApp1 = true;
         } else {
             dictOrder.pril_add = 1;
             dictOrder.showApp1 = false;
+            dictOrder.showLinkApp1 = false;
         }
 
         if (this.newListProcessesAudit && listDictProcessesAdd && listDictProcessesAdd.length > 0) {
             dictOrder.kps_and_ps_count_add = countProcessClientPathAdd;
             dictOrder.processesAdded = listDictProcessesAdd;
             dictOrder.showApp2 = true;
+            dictOrder.showLinkApp2 = true;
         } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
             dictOrder.pril_rem = 2;
             dictOrder.showApp2 = false;
+            dictOrder.showLinkApp2 = false;
         } else {
             dictOrder.pril_rem = 1;
             dictOrder.showApp2 = false;
+            dictOrder.showLinkApp2 = false;
         }
 
         if (this.deleteListProcessesAudit && listDictProcessesRem && listDictProcessesRem.length > 0) {
             dictOrder.kps_and_ps_count_rem = countRemoveProcessesClientPath;
             dictOrder.processesRemoved = listDictProcessesRem;
             dictOrder.showApp3 = true;
+            dictOrder.showLinkApp3 = true;
         } else if (this.listDataEmployeesAdd || this.listDataEmployeesDel) {
             dictOrder.pril_aski = 3;
             dictOrder.showApp3 = false;
+            dictOrder.showLinkApp3 = false;
         } else if (this.newListProcessesAudit) {
             dictOrder.pril_aski = 2;
             dictOrder.showApp3 = false;
+            dictOrder.showLinkApp3 = false;
         } else {
             dictOrder.pril_aski = 1;
             dictOrder.showApp3 = false;
+            dictOrder.showLinkApp3 = false;
         }
 
         if (this.listAutomatedSystemsAudit && listDictAutomatedSystems && listDictAutomatedSystems.length > 0) {
             dictOrder.aski = listDictAutomatedSystems;
             dictOrder.showApp4 = true;
+            dictOrder.showLinkApp4 = true;
         } else {
             dictOrder.showApp4 = false;
+            dictOrder.showLinkApp4 = false;
         }
 
         // Загрузка и рендеринг шаблона
@@ -1294,11 +1311,16 @@ export default class DocxGenerator {
             const arrayBuffer = await response.arrayBuffer();
 
             const zip = new PizZip(arrayBuffer);
+            
+            // Создаем экземпляр docxtemplater с настройками для работы с условными блоками
             const doc = new window.docxtemplater(zip, {
                 paragraphLoop: true,
                 linebreaks: true,
+                nullGetter: () => '', // Пустые значения не вызывают ошибок
+                fileType: 'docx' // Явно указываем тип файла
             });
 
+            // Рендерим документ с данными
             doc.render(dictOrder);
 
             const blob = doc.toBlob();
@@ -1308,7 +1330,12 @@ export default class DocxGenerator {
             console.log(`Документ сохранен: ${fileName}`);
         } catch (error) {
             console.error('Ошибка генерации документа:', error);
-            alert('Ошибка загрузки шаблона');
+            if (error.properties && error.properties.errors) {
+                const errors = error.properties.errors.map(e => e.message).join('\n');
+                alert(`Ошибка генерации документа:\n${errors}`);
+            } else {
+                alert('Ошибка загрузки шаблона: ' + error.message);
+            }
         }
     }
 
