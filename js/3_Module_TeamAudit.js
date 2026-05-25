@@ -18,17 +18,29 @@ export default class Module3 {
         // Подписываемся на изменения модуля 1 и модуля 2
         this.configManager.subscribe((moduleName, data, fullConfig) => {
             if (moduleName === 'SettingsOrder') {
-                this.updateScenario(data, fullConfig);
+                this.updateScenario(data, fullConfig, false);
             }
             if (moduleName === 'Questionnaire') {
-                this.updateScenario(this.configManager.getConfig().SettingsOrder, fullConfig);
+                this.updateScenario(this.configManager.getConfig().SettingsOrder, fullConfig, false);
+            }
+            // Обработка восстановления сессии или импорта файла
+            if (moduleName === 'SessionRestore' || moduleName === 'FileImport') {
+                const settingsOrderConfig = fullConfig.SettingsOrder;
+                if (settingsOrderConfig && Object.keys(settingsOrderConfig).length > 0) {
+                    setTimeout(() => {
+                        this.updateScenario(settingsOrderConfig, fullConfig, true);
+                        setTimeout(() => {
+                            this.loadSavedData();
+                        }, 150);
+                    }, 100);
+                }
             }
         });
 
         // Проверяем существующую конфигурацию
         const existingConfig = this.configManager.getConfig().SettingsOrder;
-        if (existingConfig) {
-            this.updateScenario(existingConfig, this.configManager.getConfig());
+        if (existingConfig && Object.keys(existingConfig).length > 0) {
+            this.updateScenario(existingConfig, this.configManager.getConfig(), false);
         }
     }
 
@@ -97,7 +109,7 @@ export default class Module3 {
         }
     }
 
-    updateScenario(module1Config, fullConfig) {
+    updateScenario(module1Config, fullConfig, isRestore = false) {
         if (!module1Config) return;
 
         const orderType = module1Config.orderType || module1Config.modificationType;
@@ -121,13 +133,25 @@ export default class Module3 {
             scenario = 'change';
         }
 
+        console.log('Модуль 3: смена сценария:', this.currentScenario, '->', scenario, 'isRestore:', isRestore);
+
         if (this.currentScenario !== scenario) {
             this.currentScenario = scenario;
-            this.clearModuleData();
+            
+            // При восстановлении НЕ очищаем данные - они будут загружены из конфига
+            if (!isRestore) {
+                this.clearModuleData();
+            }
+            
             this.updateFilteredEmployees();
             this.renderForm();
             
             // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
+        } else if (isRestore && this.container && this.container.innerHTML.trim() !== '') {
+            // Если сценарий не изменился, но это восстановление - просто загружаем данные
             setTimeout(() => {
                 this.loadSavedData();
             }, 50);

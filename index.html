@@ -137,19 +137,8 @@
     window.addEventListener('DOMContentLoaded', () => {
         if (configManager.loadFromSessionStorage()) {
             console.log('Конфигурация восстановлена из sessionStorage');
-            
-            // Небольшая задержка чтобы убедиться, что все модули отрендерились и получили уведомления
-            setTimeout(() => {
-                moduleInstances.forEach(module => {
-                    if (typeof module.loadSavedData === 'function') {
-                        module.loadSavedData();
-                        // Дополнительно вызываем методы обновления UI для каждого модуля
-                        if (module.constructor.name === 'Module1' && typeof module.toggleTBSelection === 'function') {
-                            module.toggleTBSelection();
-                        }
-                    }
-                });
-            }, 200);
+            // Метод loadFromSessionStorage уже уведомляет подписчиков через notifyListeners
+            // Дополнительных действий не требуется, модули сами обработают событие SessionRestore
         }
     });
 
