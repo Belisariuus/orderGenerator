@@ -356,7 +356,7 @@ export default class Module2 {
 
             <div class="date-group">
                 <div class="form-group">
-                    <label for="oldEndDate">Старая дата окончания подготовки <span class="required">*</span></label>
+                    <label for="oldEndDate">Дата распоряжения <span class="required">*</span></label>
                     <input type="date" id="oldEndDate">
                 </div>
                 <div class="form-group">
@@ -406,7 +406,7 @@ export default class Module2 {
 
             <div class="date-group">
                 <div class="form-group">
-                    <label for="oldEndDate">Старая дата окончания проверочных действий <span class="required">*</span></label>
+                    <label for="oldEndDate">Дата распоряжения <span class="required">*</span></label>
                     <input type="date" id="oldEndDate">
                 </div>
                 <div class="form-group">

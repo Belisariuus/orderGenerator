@@ -144,12 +144,10 @@ export default class Module3 {
             };
         } else if (this.currentScenario === 'change') {
             emptyData = {
-                changes: {
-                    include: [],
-                    exclude: [],
-                    signer: null,
-                    control: null
-                }
+                include: [],
+                exclude: [],
+                signer: null,
+                control: null
             };
         }
 
@@ -286,7 +284,7 @@ export default class Module3 {
                            placeholder="Поиск по ФИО, должности, отделу или табельному номеру..." autocomplete="off" required>
                     <div class="suggestions-box"></div>
                 </div>
-                <div id="changeSignerTag" class="selected-tag"></div>
+                    <div id="changeSignerTag" class="selected-tag"></div>
             </div>
 
             <div class="employee-section">
@@ -811,12 +809,11 @@ export default class Module3 {
         }
 
         const changeData = {
-            changes: {
                 include: includeMembers,
                 exclude: excludeMembers,
                 signer: signer,
                 control: control
-            }
+
         };
 
         this.configManager.updateModuleConfig(this.MODULE_KEY, changeData);

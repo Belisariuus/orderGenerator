@@ -227,6 +227,7 @@ export default class DocxGenerator {
         if (teamAudit.control) {
             const control = teamAudit.control;
             attrs.director = `${control.fullName}(${control.tabNumber}),${control.position}`;
+            console.log(attrs.director);
         }
 
         if (teamAudit.signer) {
@@ -426,6 +427,7 @@ export default class DocxGenerator {
         this.nameAudit = dictAttributesJson['name'];
         this.flagPrepOrExecute = dictAttributesJson['pod_or_prov'];
         this.dataEmpExecutionControl = dictAttributesJson['director'];
+        console.log(this.dataEmpExecutionControl)
         this.dataSignatory = dictAttributesJson['podpis'].split(',');
         this.userLogin = dictAttributesJson['user'];
         this.userEmail = dictAttributesJson['email'];
@@ -909,7 +911,7 @@ export default class DocxGenerator {
      * Генерация распоряжения на изменение
      */
     async generateChangeAudit() {
-        // Для директора
+        // Для сотрудника, исполняющего обязанности контроля исполнения
         const [empExecutionControlFio, empExecutionControlPost] = this.dataEmpExecutionControl.split(',');
         const empExecutionControlShortFio = this.shortFio(empExecutionControlFio, true);
         const empExecutionControlPostGent = this.titleToGent(empExecutionControlPost.replace('управления', ''));
