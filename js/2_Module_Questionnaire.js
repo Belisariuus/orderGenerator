@@ -8,12 +8,24 @@ export default class Module2 {
 
         this.configManager.subscribe((moduleName, data, fullConfig) => {
             if (moduleName === 'SettingsOrder') {
-                this.updateScenario(data);
+                this.updateScenario(data, false);
+            }
+            // Обработка восстановления сессии или импорта файла
+            if (moduleName === 'SessionRestore' || moduleName === 'FileImport') {
+                const settingsOrderConfig = fullConfig.SettingsOrder;
+                if (settingsOrderConfig && Object.keys(settingsOrderConfig).length > 0) {
+                    // Сначала обновляем сценарий на основе SettingsOrder с флагом восстановления
+                    this.updateScenario(settingsOrderConfig, true);
+                    // Затем загружаем данные этого модуля
+                    setTimeout(() => {
+                        this.loadSavedData();
+                    }, 100);
+                }
             }
         });
 
         const existingConfig = this.configManager.getConfig().SettingsOrder;
-        if (existingConfig) {
+        if (existingConfig && Object.keys(existingConfig).length > 0) {
             this.updateScenario(existingConfig);
         }
     }
@@ -30,7 +42,7 @@ export default class Module2 {
     }
 
     // Обновление сценария
-    updateScenario(module1Config) {
+    updateScenario(module1Config, isRestore = false) {
         if (!module1Config) return;
 
         const auditType = module1Config.auditType;
@@ -48,17 +60,25 @@ export default class Module2 {
             scenario = 'execution_change';
         }
 
-        console.log('Смена сценария:', this.currentScenario, '->', scenario);
+        console.log('Смена сценария:', this.currentScenario, '->', scenario, 'isRestore:', isRestore);
 
         if (this.currentScenario !== scenario) {
             this.currentScenario = scenario;
 
-            // ПРИНУДИТЕЛЬНАЯ ОЧИСТКА данных модуля
-            this.clearModuleData();
+            // ПРИ restoration НЕ очищаем данные - они будут загружены из конфига
+            if (!isRestore) {
+                // ПРИНУДИТЕЛЬНАЯ ОЧИСТКА данных модуля
+                this.clearModuleData();
+            }
 
             this.renderForm();
             
             // Загружаем данные с небольшой задержкой после рендеринга формы
+            setTimeout(() => {
+                this.loadSavedData();
+            }, 50);
+        } else if (isRestore && this.container && this.container.innerHTML.trim() !== '') {
+            // Если сценарий не изменился, но это восстановление - просто загружаем данные
             setTimeout(() => {
                 this.loadSavedData();
             }, 50);
