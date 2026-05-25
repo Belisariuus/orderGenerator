@@ -93,36 +93,70 @@ export default class DocxGenerator {
     }
 
     /**
+     * Публичный метод для подготовки и генерации документа из конфига
+     * Вызывается из index.html по кнопке
+     */
+    async prepareDocument() {
+        // Проверяем, все ли модули сохранили данные
+        if (!this.configManager.isAllModulesSaved()) {
+            alert('⚠️ Не все модули заполнены! Пожалуйста, заполните все необходимые модули перед генерацией.');
+            return;
+        }
+
+        // Генерируем уникальное имя задачи на основе даты
+        const now = new Date();
+        const taskName = `Task_${now.toISOString().slice(0,10).replace(/-/g,'')}_${now.getHours()}-${now.getMinutes()}`;
+        
+        await this.generateFromConfig(taskName);
+    }
+
+    /**
      * Собирает конфигурацию из всех модулей и генерирует документ
      * @param {string} taskName - Имя папки задачи для сохранения файла
      */
     async generateFromConfig(taskName) {
-        // Получаем данные из всех модулей через configManager
-        const settingsOrder = this.configManager.getModuleConfig('SettingsOrder');
-        const questionnaire = this.configManager.getModuleConfig('Questionnaire');
-        const teamAudit = this.configManager.getModuleConfig('TeamAudit');
-        const processesModule = this.configManager.getModuleConfig('ProcessesModule');
-        const automatedSystems = this.configManager.getModuleConfig('AutomatedSystems');
+        try {
+            // Получаем данные из всех модулей через configManager
+            const settingsOrder = this.configManager.getModuleConfig('SettingsOrder');
+            const questionnaire = this.configManager.getModuleConfig('Questionnaire');
+            const teamAudit = this.configManager.getModuleConfig('TeamAudit');
+            const processesModule = this.configManager.getModuleConfig('ProcessesModule');
+            const automatedSystems = this.configManager.getModuleConfig('AutomatedSystems');
 
-        console.log('Генерация документа из конфигурации:', {
-            settingsOrder,
-            questionnaire,
-            teamAudit,
-            processesModule,
-            automatedSystems
-        });
+            console.log('Генерация документа из конфигурации:', {
+                settingsOrder,
+                questionnaire,
+                teamAudit,
+                processesModule,
+                automatedSystems
+            });
 
-        // Преобразуем данные из модулей в формат для генератора
-        const dictAttributes = this.prepareAttributes(
-            settingsOrder,
-            questionnaire,
-            teamAudit,
-            processesModule,
-            automatedSystems
-        );
+            // Проверка обязательных данных
+            if (!settingsOrder || !settingsOrder.auditType) {
+                alert('❌ Не выбран тип проверки в Модуле 1');
+                return;
+            }
 
-        // Генерируем документ
-        await this.generateDocument(dictAttributes, taskName);
+            if (!questionnaire || Object.keys(questionnaire).length === 0) {
+                alert('❌ Не заполнен Опросник в Модуле 2');
+                return;
+            }
+
+            // Преобразуем данные из модулей в формат для генератора
+            const dictAttributes = this.prepareAttributes(
+                settingsOrder,
+                questionnaire,
+                teamAudit,
+                processesModule,
+                automatedSystems
+            );
+
+            // Генерируем документ
+            await this.generateDocument(dictAttributes, taskName);
+        } catch (error) {
+            console.error('Ошибка при генерации документа:', error);
+            alert(`❌ Ошибка генерации документа: ${error.message}`);
+        }
     }
 
     /**
@@ -370,7 +404,7 @@ export default class DocxGenerator {
 
         if (!this.flagIsChange) {
             // Распоряжение на подготовку или проведение
-            this.nameTemplate = 'tpl/TemplateOrderExecuteOrPrepAudit2026.docx';
+            this.nameTemplate = 'templates/TemplateOrderExecuteOrPrepAudit2026.docx';
             [this.dateStart, this.dateEnd] = dictAttributesJson['dates'].split(',');
             this.pointAudit = dictAttributesJson['punkt'];
             this.dataHeadAudit = dictAttributesJson['supervisor'].split(',');
@@ -409,7 +443,7 @@ export default class DocxGenerator {
             }
         } else {
             // Распоряжение на изменение
-            this.nameTemplate = 'tpl/TemplateOrderChangeAudit2026.docx';
+            this.nameTemplate = 'templates/TemplateOrderChangeAudit2026.docx';
             [this.dateOldEndAudit, this.dateNewEndAudit] = dictAttributesJson['dates'].split(',');
             this.numberOrderAudit = dictAttributesJson['provNum'];
             this.textReason = dictAttributesJson['reason'];
